@@ -1,18 +1,18 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+// pages/index.tsx
+import dynamic from 'next/dynamic';
+import EditableTable from '../components/EditableTable';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const DocViewerWithUpload = dynamic(() => import('../components/DocViewers'), { ssr: false });
 
 export default function Home() {
   return (
-    <div></div>
+    <div className="flex h-screen">
+      <div className="w-1/2 border-r border-gray-300">
+        <DocViewerWithUpload />
+      </div>
+      <div className="w-1/2 p-4">
+        <EditableTable />
+      </div>
+    </div>
   );
 }
