@@ -12,5 +12,6 @@ export interface ParsedSection {
     col3: string;
     col4: string;
     col5: string;
+    col6: string;
   }
   

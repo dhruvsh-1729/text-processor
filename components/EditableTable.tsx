@@ -52,64 +52,138 @@ const EditableTable: React.FC<EditableTableProps> = ({
         <table className="border-collapse border border-gray-300 w-full">
           <thead>
             <tr>
-              <th className="border border-gray-300 px-4 py-2">Sr.</th>
-              <th className="border border-gray-300 px-4 py-2">V.T</th>
-              <th className="border border-gray-300 px-4 py-2">Granth</th>
-              <th className="border border-gray-300 px-4 py-2">ShastraPath</th>
-              <th className="border border-gray-300 px-4 py-2">Pub. Rem</th>
-              <th className="border border-gray-300 px-4 py-2">In. Rem</th>
+              <th className="border border-gray-300 px-2 py-2">Sr.</th>
+              <th className="border border-gray-300 px-2 py-2">V.T</th>
+              <th className="border border-gray-300 px-2 py-2">Granth</th>
+              <th className="border border-gray-300 px-2 py-2">ShastraPath</th>
+              <th className="border border-gray-300 px-2 py-2">Pub. Rem</th>
+              <th className="border border-gray-300 px-2 py-2">In. Rem</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {rows.map((row: TableRow, index: number) => (
               <tr key={row.id}>
-                <td className="border border-gray-300 px-4 py-2">{index + 1}</td>
-                <td className="border border-gray-300 px-4 py-2" style={{ width: '12%' }}>
-                    <select
-                    value={row.col2 || "स्व"}
-                    onChange={(e) =>
-                      setRows((prevRows) =>
-                      prevRows.map((r, i) =>
-                        i === index ? { ...r, col2: e.target.value } : r
-                      )
-                      )
-                    }
-                    className="w-full border border-gray-300 px-2 py-1"
-                    >
-                    <option value="">Select</option>
-                    <option value="व्यु">व्यु</option>
-                    <option value="व्या">व्या</option>
-                    <option value="साल">सा.ल</option>
-                    <option value="ल">ल.</option>
-                    <option value="लचि">ल.चि.</option>
-                    <option value="पर्या">पर्या</option>
-                    <option value="विक.">विक.</option>
-                    <option value="स्व">स्व.</option>
-                    <option value="परि">परि.</option>
-                    </select>
+              <td className="border border-gray-300 px-2 py-2">{index + 1}</td>
+              <td className="border border-gray-300 px-2 py-2 w-1/12">
+                <select
+                value={row.col2 || "स्व"}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setRows((prevRows: TableRow[]) =>
+                  prevRows.map((r: TableRow, i: number) =>
+                    i === index ? { ...r, col2: e.target.value } : r
+                  )
+                  )
+                }
+                className="w-full border border-gray-300 px-2 py-1"
+                >
+                <option value="">Select</option>
+                <option value="व्यु">व्यु</option>
+                <option value="व्या">व्या</option>
+                <option value="साल">सा.ल</option>
+                <option value="ल">ल.</option>
+                <option value="लचि">ल.चि.</option>
+                <option value="पर्या">पर्या</option>
+                <option value="विक.">विक.</option>
+                <option value="स्व">स्व.</option>
+                <option value="परि">परि.</option>
+                </select>
+              </td>
+              <td className='border border-gray-300 px-2 py-2'>
+                <textarea
+                value={row.col3}
+                onClick={() => setSelectedRowIndex(index)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setRows((prevRows: TableRow[]) =>
+                  prevRows.map((r: TableRow, i: number) =>
+                    i === index ? { ...r, col3: e.target.value } : r
+                  )
+                  )
+                }
+                className="w-full border px-2 border-gray-300 py-1 resize-none"
+                style={{ height: 'auto', minHeight: '12em' }}
+                rows={1}
+                />
                 </td>
-                <td className="border border-gray-300 px-4 py-2">{row.col3}</td>
-                <td className="border border-gray-300 px-4 py-2" style={{ width: '70%' }}>
-                  <textarea
-                    value={row.col4}
-                    onClick={() => setSelectedRowIndex(index)}
-                    onChange={(e) =>
-                      setRows((prevRows) =>
-                        prevRows.map((r, i) =>
-                          i === index ? { ...r, col4: e.target.value } : r
-                        )
-                      )
-                    }
-                    ref={(el) => {
-                      inputRefs.current[index] = el;
-                    }}
-                    className="w-full border border-gray-300 px-2 py-1 resize-none"
-                    style={{ height: 'auto', minHeight: '12em' }}
-                    rows={1}
-                  />
-                </td>
-                <td className="border border-gray-300 px-4 py-2">{row.col5}</td>
-                <td className="border border-gray-300 px-4 py-2"></td>
+              <td className="border border-gray-300 px-2 py-2" style={{ width: '45%' }}>
+                <textarea
+                value={row.col4}
+                onClick={() => setSelectedRowIndex(index)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setRows((prevRows: TableRow[]) =>
+                  prevRows.map((r: TableRow, i: number) =>
+                    i === index ? { ...r, col4: e.target.value } : r
+                  )
+                  )
+                }
+                ref={(el: HTMLTextAreaElement | null) => {
+                  inputRefs.current[index] = el;
+                }}
+                className="w-full border border-gray-300 px-2 py-1 resize-none"
+                style={{ height: 'auto', minHeight: '12em' }}
+                rows={1}
+                />
+              </td>
+              <td className="border border-gray-300 px-2 py-2 w-1/10">
+                <div className="flex flex-col w-full">
+                <select
+                value={row.col5.split('=')[0] || ''}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                const selectedValue = e.target.value;
+                setRows((prevRows: TableRow[]) =>
+                  prevRows.map((r: TableRow, i: number) =>
+                  i === index
+                  ? { ...r, col5: selectedValue + (selectedValue === 'RA' || selectedValue === 'RC' || selectedValue === 'RS' ? '=' : '') }
+                  : r
+                  )
+                );
+                }}
+                className="w-full border border-gray-300 px-2 py-1 mb-2"
+                >
+                <option value="">Select</option>
+                <option value="MTN">MTN</option>
+                <option value="MMT">MMT</option>
+                <option value="Samegranth">Samegranth</option>
+                <option value="SinglePath">SinglePath</option>
+                <option value="RA">RA</option>
+                <option value="RC">RC</option>
+                <option value="RS">RS</option>
+                </select>
+                {(row.col5.startsWith('RA=') || row.col5.startsWith('RC=') || row.col5.startsWith('RS=')) && (
+                <textarea
+                value={row.col5.split('=')[1] || ''}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  const newValue = e.target.value;
+                  setRows((prevRows: TableRow[]) =>
+                  prevRows.map((r: TableRow, i: number) =>
+                  i === index
+                  ? { ...r, col5: row.col5.split('=')[0] + '=' + newValue }
+                  : r
+                  )
+                  );
+                }}
+                className="border border-gray-300 px-2 py-1 resize-none"
+                style={{ height: '10em' }}
+                rows={1}
+                />
+                )}
+                </div>
+              </td>
+              <td className="border border-gray-300 px-2 py-2 w-1/10">
+                <textarea
+                value={row.col6 || ''}
+                onClick={() => setSelectedRowIndex(index)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setRows((prevRows: TableRow[]) =>
+                  prevRows.map((r: TableRow, i: number) =>
+                    i === index ? { ...r, col6: e.target.value } : r
+                  )
+                  )
+                }
+                className="w-full border border-gray-300 px-2 py-1 resize-none"
+                style={{ height: 'auto', minHeight: '12em' }}
+                rows={1}
+                />
+              </td>
               </tr>
             ))}
           </tbody>

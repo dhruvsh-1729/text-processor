@@ -8,7 +8,7 @@ const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [sections, setSections] = useState<ParsedSection[]>([]);
   const [rows, setRows] = useState<TableRow[]>([
-    { id: 1, col1: '', col2: 'स्व', col3: '', col4: '', col5: '' },
+    { id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' },
   ]);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
@@ -72,36 +72,98 @@ const App: React.FC = () => {
 
   const handlePasteFromParsed = (text: string) => {
     if (selectedRowIndex !== null) {
+      const regex = /\(क्र\.-[^\)]+\)/g;
+      const clippedText = text.match(regex)?.join(' ') || '';
+      const remainingText = text.replace(regex, '').trim();
+
       setRows((prevRows) =>
-        prevRows.map((row, index) =>
-          index === selectedRowIndex
-            ? { ...row, col4: row.col4 ? `${row.col4}\n${text}` : text }
-            : row
-        )
+      prevRows.map((row, index) => {
+        if (index === selectedRowIndex) {
+        const existingNumbers = row.col6
+          ? row.col6.split('\n').map((item) => item.trim())
+          : [];
+        const newNumbers = clippedText
+          .split(' ')
+          .map((item) => item.trim())
+          .filter((item) => item !== '');
+
+        const hasDifferentNumber = newNumbers.some(
+          (num) => !existingNumbers.includes(num)
+        );
+
+        return {
+          ...row,
+          col4: hasDifferentNumber
+            ? `${row.col4 && row.col4.trim() ? `${row.col4}......................` : ''}\n${remainingText}`
+            : row.col4 && row.col4.trim()
+            ? `${row.col4}\n${remainingText}`
+            : `\n${remainingText}`,
+          col6: row.col6
+            ? Array.from(new Set([...existingNumbers, ...newNumbers]))
+              .filter((text) => text.trim() !== '')
+              .join('\n')
+            : clippedText,
+        };
+        }
+        return row;
+      })
       );
     }
   };
 
   const addGranth = (granth: string) => {
     if (selectedRowIndex !== null) {
+      const [newGranth, newAdhyay] = granth.split('\n').map((item) => item.trim());
+
       setRows((prevRows) =>
-        prevRows.map((row, index) =>
-          index === selectedRowIndex ? { ...row, col3: granth } : row
-        )
+        prevRows.map((row, index) => {
+          if (index === selectedRowIndex) {
+            const existingText = row.col3.trim();
+            const existingGranths = existingText
+              ? existingText.split('\n\n').map((block) => block.trim())
+              : [];
+
+            const granthIndex = existingGranths.findIndex((block) =>
+              block.startsWith(newGranth)
+            );
+
+            if (granthIndex !== -1) {
+              const granthBlock = existingGranths[granthIndex];
+              const [existingGranth, ...existingAdhyays] = granthBlock
+                .split('\n')
+                .map((line) => line.trim());
+
+              if (!existingAdhyays.includes(newAdhyay)) {
+                existingGranths[granthIndex] = `${existingGranth}\n${[
+                  ...existingAdhyays,
+                  newAdhyay,
+                ].join('\n')}`;
+              }
+            } else {
+              existingGranths.push(`${newGranth}\n${newAdhyay}`);
+            }
+
+            return {
+              ...row,
+              col3: existingGranths.join('\n\n'),
+            };
+          }
+          return row;
+        })
       );
     }
-  }
+  };
 
   const addRow = () =>
     setRows((prev) => [
       ...prev,
-      { id: prev.length + 1, col1: '', col2: 'स्व', col3: '', col4: '', col5: '' },
+      { id: prev.length + 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' },
     ]);
 
   return (
     <div className="h-screen flex gap-4 p-6 overflow-hidden">
       {/* Left Section */}
-      <div className="w-1/2 flex flex-col min-h-0 overflow-hidden">
+      <div className="w-2/5 flex flex-col min-h-0 overflow-hidden">
         <div className="flex-shrink-0">
           <h1 className="text-2xl font-bold mb-4">Upload a .docx File</h1>
           <div className="flex gap-4 items-center">
@@ -128,7 +190,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Right Section */}
-      <div className="w-1/2 flex flex-col min-h-0 overflow-hidden">
+      <div className="w-3/5 flex flex-col min-h-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           <EditableTable
             rows={rows}
