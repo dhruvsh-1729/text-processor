@@ -17,7 +17,7 @@ const ParsedFile: React.FC = () => {
     if (
       selectedFile &&
       selectedFile.type ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ) {
       setFile(selectedFile);
     } else {
@@ -32,35 +32,35 @@ const ParsedFile: React.FC = () => {
     }
 
     console.log(`🔹 File selected: ${file.name}`);
-    
-  
+
+
     try {
       const arrayBuffer = await file.arrayBuffer();
       const { value } = await mammoth.convertToHtml({ arrayBuffer });
-  
+
       const rawSections = value.split(/(?=<p>ग्रंथ :-)/);
-  
+
       const parsed: ParsedSection[] = rawSections.map((sectionHtml, i) => {
         const wrapper = document.createElement('div');
         wrapper.innerHTML = sectionHtml;
-  
+
         const lines = Array.from(wrapper.querySelectorAll('p')).map((p) =>
           p.textContent?.trim() || ''
         );
-  
+
         let granth = '',
           adhyay = '',
-          pointers = '',
-          textLines: string[] = [];
-  
+          pointers = '';
+        const textLines: string[] = [];
+
         for (const line of lines) {
           if (line.startsWith('ग्रंथ :-')) {
             const fullGranth = line.replace('ग्रंथ :-', '').trim();
-  
+
             console.log(`🔹 [Section ${i}] Full Granth Line: "${fullGranth}"`);
             const splitByPublisher = fullGranth.split('(प्रकाशक');
             console.log(`🔸 [Section ${i}] Split Result:`, splitByPublisher);
-  
+
             granth = splitByPublisher[0].trim();
           } else if (line.startsWith('Adhyay :-')) {
             adhyay = line.replace('Adhyay :-', '').trim();
@@ -70,7 +70,7 @@ const ParsedFile: React.FC = () => {
             textLines.push(line);
           }
         }
-  
+
         return {
           Granth: granth,
           Adhyay: adhyay,
@@ -78,14 +78,14 @@ const ParsedFile: React.FC = () => {
           Text: textLines.join('<br/>'),
         };
       });
-  
+
       setSections(parsed);
     } catch (err) {
       console.error('❌ Error parsing file:', err);
       alert('Failed to parse the file.');
     }
   };
-    
+
 
   return (
     <div className="p-6">
@@ -113,23 +113,23 @@ const ParsedFile: React.FC = () => {
           <table className="border border-gray-300 w-full table-fixed">
             <thead className="bg-gray-100">
               <tr>
-            <th className="w-1/4 border px-2 py-2 text-left">Granth</th>
-            <th className="w-1/4 border px-2 py-2 text-left">Adhyay</th>
-            <th className="w-1/4 border px-2 py-2 text-left">Pointers</th>
-            <th className="w-1/4 border px-2 py-2 text-left">Text</th>
+                <th className="w-1/4 border px-2 py-2 text-left">Granth</th>
+                <th className="w-1/4 border px-2 py-2 text-left">Adhyay</th>
+                <th className="w-1/4 border px-2 py-2 text-left">Pointers</th>
+                <th className="w-1/4 border px-2 py-2 text-left">Text</th>
               </tr>
             </thead>
             <tbody>
               {sections.map((section, index) => (
-            <tr key={index} className="align-top">
-              <td className="w-1/4 border px-2 py-2 break-words">{section.Granth}</td>
-              <td className="w-1/4 border px-2 py-2 break-words">{section.Adhyay}</td>
-              <td className="w-1/4 border px-2 py-2 break-words">{section.Pointers}</td>
-              <td
-                className="w-1/4 border px-2 py-2 break-words"
-                dangerouslySetInnerHTML={{ __html: section.Text }}
-              ></td>
-            </tr>
+                <tr key={index} className="align-top">
+                  <td className="w-1/4 border px-2 py-2 break-words">{section.Granth}</td>
+                  <td className="w-1/4 border px-2 py-2 break-words">{section.Adhyay}</td>
+                  <td className="w-1/4 border px-2 py-2 break-words">{section.Pointers}</td>
+                  <td
+                    className="w-1/4 border px-2 py-2 break-words"
+                    dangerouslySetInnerHTML={{ __html: section.Text }}
+                  ></td>
+                </tr>
               ))}
             </tbody>
           </table>
