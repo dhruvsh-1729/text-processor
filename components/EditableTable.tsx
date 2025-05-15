@@ -65,28 +65,28 @@ const EditableTable: React.FC<EditableTableProps> = ({
               <tr key={row.id}>
                 <td className="border border-gray-300 px-4 py-2">{index + 1}</td>
                 <td className="border border-gray-300 px-4 py-2" style={{ width: '12%' }}>
-                  <select
-                    value={row.col2}
+                    <select
+                    value={row.col2 || "स्व"}
                     onChange={(e) =>
                       setRows((prevRows) =>
-                        prevRows.map((r, i) =>
-                          i === index ? { ...r, col2: e.target.value } : r
-                        )
+                      prevRows.map((r, i) =>
+                        i === index ? { ...r, col2: e.target.value } : r
+                      )
                       )
                     }
                     className="w-full border border-gray-300 px-2 py-1"
-                  >
+                    >
                     <option value="">Select</option>
-                    <option value="व्यु.">व्यु</option>
+                    <option value="व्यु">व्यु</option>
                     <option value="व्या">व्या</option>
-                    <option value="सा.ल">सा.ल</option>
-                    <option value="ल.">ल.</option>
-                    <option value="ल.चि.">ल.चि.</option>
+                    <option value="साल">सा.ल</option>
+                    <option value="ल">ल.</option>
+                    <option value="लचि">ल.चि.</option>
                     <option value="पर्या">पर्या</option>
                     <option value="विक.">विक.</option>
-                    <option value="स्व.">स्व.</option>
-                    <option value="परि.">परि.</option>
-                  </select>
+                    <option value="स्व">स्व.</option>
+                    <option value="परि">परि.</option>
+                    </select>
                 </td>
                 <td className="border border-gray-300 px-4 py-2">{row.col3}</td>
                 <td className="border border-gray-300 px-4 py-2" style={{ width: '70%' }}>

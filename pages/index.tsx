@@ -8,7 +8,7 @@ const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [sections, setSections] = useState<ParsedSection[]>([]);
   const [rows, setRows] = useState<TableRow[]>([
-    { id: 1, col1: '', col2: '', col3: '', col4: '', col5: '' },
+    { id: 1, col1: '', col2: 'स्व', col3: '', col4: '', col5: '' },
   ]);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
@@ -95,7 +95,7 @@ const App: React.FC = () => {
   const addRow = () =>
     setRows((prev) => [
       ...prev,
-      { id: prev.length + 1, col1: '', col2: '', col3: '', col4: '', col5: '' },
+      { id: prev.length + 1, col1: '', col2: 'स्व', col3: '', col4: '', col5: '' },
     ]);
 
   return (
