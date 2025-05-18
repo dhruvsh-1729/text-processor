@@ -308,8 +308,19 @@ const EditableTable: React.FC<EditableTableProps> = ({
           <tbody>
             {rows.map((row: TableRow, index: number) => (
               <tr key={row.id}>
-                <td className="border border-gray-300 px-2 py-2">{index + 1}</td>
-                <td className="border border-gray-300 px-2 py-2 w-1/12">
+                <td className="border flex flex-col gap-2 border-gray-300 px-2 py-2">{index + 1}
+                  <button
+                    onClick={() =>
+                      setRows((prevRows: TableRow[]) =>
+                        prevRows.filter((_, i: number) => i !== index)
+                      )
+                    }
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    🗑️
+                  </button>
+                </td>
+                <td className="border border-gray-300 px-2 py-2 w-1/15">
                   <select
                     value={row.col2 || "स्व"}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -349,7 +360,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
                     rows={1}
                   />
                 </td>
-                <td className="border border-gray-300 px-2 py-2" style={{ width: '45%' }}>
+                <td className="border border-gray-300 px-2 py-2" style={{ width: '55%' }}>
                   <textarea
                     value={row.col4}
                     onClick={() => setSelectedRowIndex(index)}
@@ -435,7 +446,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
         </table>
         <button
           onClick={addRow}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
+          type="button"
+          className="mt-2 px-4 py-2 bg-zinc-500 cursor-pointer text-white rounded"
         >
           Add Row
         </button>
