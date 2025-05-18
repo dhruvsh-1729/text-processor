@@ -8,6 +8,8 @@ const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [docs, setDocs] = useState<Array<{ fileName: string; sections: ParsedSection[] }>>([]);
   const [activeDocTab, setActiveDocTab] = useState<number | null>(null);
+  const [hiddenLeft, setHiddenLeft] = useState<boolean>(false);
+  const [hiddenRight, setHiddenRight] = useState<boolean>(false);
   const [tables, setTables] = useState<Array<{ rows: TableRow[]; selectedRowIndex: number | null }>>([
     {
       rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
@@ -126,8 +128,8 @@ const App: React.FC = () => {
 
         const updatedRow = {
           ...row,
-          col4: `${row.col4 && row.col4.trim().includes(remainingText) 
-            ? row.col4.trim() 
+          col4: `${row.col4 && row.col4.trim().includes(remainingText)
+            ? row.col4.trim()
             : `${row.col4?.trim() || ''}${hasDifferentNumber && row.col4?.trim() ? '......................' : ''}\n${remainingText}`}`,
           col6: row.col6
             ? Array.from(new Set([...existingNumbers, ...newNumbers]))
@@ -182,103 +184,143 @@ const App: React.FC = () => {
   return (
     <div className="h-screen flex gap-4 p-6 overflow-hidden bg-zinc-100">
       {/* Left Section: Document Tabs */}
-      <div className="w-2/5 flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg">
-      <div className="flex-shrink-0 p-4 border-b border-zinc-200">
-        {/* <h1 className="text-xl font-semibold text-zinc-800 mb-4">Upload a .docx File</h1> */}
-        <div className="flex gap-4 items-center">
-        <input
-          type="file"
-          accept=".docx"
-          onChange={handleFileChange}
-          className="border border-zinc-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500"
-        />
-        <button
-          onClick={handleUpload}
-          className="bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-        >
-          Upload
-        </button>
-        </div>
-      </div>
-      <div className="flex-shrink-0 p-4 border-b border-zinc-200">
-        <div className="tabs flex gap-2 flex-wrap">
-        {docs.map((doc, index) => (
+      <div
+        className={`transition-all duration-300 ${hiddenLeft ? 'w-12' : hiddenRight ? 'w-full' : 'w-2/5'
+          } flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
+      >
+        <div className="flex-shrink-0 p-4 border-b border-zinc-200 flex items-center justify-between">
+          {!hiddenLeft && (
+            <div className="flex gap-4 items-center">
+              <input
+                type="file"
+                accept=".docx"
+                onChange={handleFileChange}
+                className="border border-zinc-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500"
+              />
+              <button
+                onClick={handleUpload}
+                className="bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+              >
+                Upload
+              </button>
+            </div>
+          )}
           <button
-          key={index}
-          onClick={() => setActiveDocTab(index)}
-          className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${
-            activeDocTab === index
-            ? 'bg-zinc-800 text-white'
-            : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
-          }`}
+            onClick={() => setHiddenLeft(!hiddenLeft)}
+            className="bg-zinc-800 text-white px-2 py-1 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
           >
-          {doc.fileName}
+            {hiddenLeft ? '>' : '<'}
           </button>
-        ))}
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeDocTab !== null && docs[activeDocTab] && (
-        <DocxParser
-          sections={docs[activeDocTab].sections}
-          onPasteText={handlePasteFromParsed}
-          addGranth={addGranth}
-        />
+        {!hiddenLeft && (
+          <>
+            <div className="flex-shrink-0 p-4 border-b border-zinc-200">
+              <div className="tabs flex gap-2 flex-wrap">
+                {docs.map((doc, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveDocTab(index)}
+                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeDocTab === index
+                      ? 'bg-zinc-800 text-white'
+                      : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
+                      }`}
+                  >
+                    {doc.fileName}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {activeDocTab !== null && docs[activeDocTab] && (
+                <DocxParser
+                  sections={docs[activeDocTab].sections}
+                  onPasteText={handlePasteFromParsed}
+                  addGranth={addGranth}
+                />
+              )}
+            </div>
+          </>
         )}
-      </div>
       </div>
 
       {/* Right Section: Table Tabs */}
-      <div className="w-3/5 flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg">
-      <div className="flex-shrink-0 p-4 border-b border-zinc-200">
-        <div className="tabs flex gap-2 flex-wrap">
-        {tables.map((_, index) => (
+      <div
+        className={`transition-all duration-300 ${hiddenRight ? 'w-96' : hiddenLeft ? 'w-full' : 'w-3/5'
+          } flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
+      >
+        <div className="flex-shrink-0 p-4 border-b border-zinc-200 flex items-center justify-between">
+          {!hiddenRight && (
+            <div className="tabs flex gap-2 flex-wrap">
+              {tables.map((_, index) => (
+                <div key={index} className="relative">
+                  <button
+                    onClick={() => setActiveTableTab(index)}
+                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeTableTab === index
+                      ? 'bg-zinc-800 text-white'
+                      : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
+                      }`}
+                  >
+                    Table {index + 1}
+                  </button>
+                  <button
+                    onClick={() =>
+                      setTables((prevTables) => {
+                        const newTables = prevTables.filter((_, i) => i !== index);
+                        if (activeTableTab === index) {
+                          setActiveTableTab(newTables.length > 0 ? 0 : 0);
+                        } else if (activeTableTab > index) {
+                          setActiveTableTab((prev) => prev - 1);
+                        }
+                        return newTables;
+                      })
+                    }
+                    className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addTableTab}
+                className="px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+              >
+                Add Table
+              </button>
+            </div>
+          )}
           <button
-          key={index}
-          onClick={() => setActiveTableTab(index)}
-          className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${
-            activeTableTab === index
-            ? 'bg-zinc-800 text-white'
-            : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
-          }`}
+            onClick={() => setHiddenRight(!hiddenRight)}
+            className="bg-zinc-800 text-white px-2 py-1 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
           >
-          Table {index + 1}
+            {hiddenRight ? '<' : '>'}
           </button>
-        ))}
-        <button
-          onClick={addTableTab}
-          className="px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-        >
-          Add Table
-        </button>
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {tables[activeTableTab] && (
-        <EditableTable
-          rows={tables[activeTableTab].rows}
-          selectedRowIndex={tables[activeTableTab].selectedRowIndex}
-          setSelectedRowIndex={(index) =>
-          setTables((prev) => {
-            const newTables = [...prev];
-            newTables[activeTableTab].selectedRowIndex = index;
-            return newTables;
-          })
-          }
-          setRows={(newRows) =>
-          setTables((prev) => {
-            const newTables = [...prev];
-            newTables[activeTableTab].rows =
-            typeof newRows === 'function'
-              ? newRows(newTables[activeTableTab].rows)
-              : newRows;
-            return newTables;
-          })
-          }
-          addRow={addRow}
-        />
-        )}
-      </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {tables[activeTableTab] && (
+            <EditableTable
+              rows={tables[activeTableTab].rows}
+              selectedRowIndex={tables[activeTableTab].selectedRowIndex}
+              setSelectedRowIndex={(index) =>
+                setTables((prev) => {
+                  const newTables = [...prev];
+                  newTables[activeTableTab].selectedRowIndex = index;
+                  return newTables;
+                })
+              }
+              setRows={(newRows) =>
+                setTables((prev) => {
+                  const newTables = [...prev];
+                  newTables[activeTableTab].rows =
+                    typeof newRows === 'function'
+                      ? newRows(newTables[activeTableTab].rows)
+                      : newRows;
+                  return newTables;
+                })
+              }
+              addRow={addRow}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
