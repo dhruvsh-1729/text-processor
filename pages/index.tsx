@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import EditableTable from '../components/EditableTable';
 import DocxParser from '../components/DocxParser';
 import { ParsedSection, TableRow } from '../components/types';
 import mammoth from 'mammoth';
+import { Crop } from 'react-image-crop';
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -10,13 +11,50 @@ const App: React.FC = () => {
   const [activeDocTab, setActiveDocTab] = useState<number | null>(null);
   const [hiddenLeft, setHiddenLeft] = useState<boolean>(false);
   const [hiddenRight, setHiddenRight] = useState<boolean>(false);
-  const [tables, setTables] = useState<Array<{ rows: TableRow[]; selectedRowIndex: number | null }>>([
+  const [tables, setTables] = useState<Array<{
+    rows: TableRow[];
+    selectedRowIndex: number | null;
+    images: { [key: number]: { src: string; crop: Crop }[] };
+  }>>([
     {
       rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
       selectedRowIndex: null,
+      images: {},
     },
   ]);
   const [activeTableTab, setActiveTableTab] = useState<number>(0);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('appState');
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      setDocs(parsedState.docs || []);
+      setTables(parsedState.tables || [{
+        rows: [{ power: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
+        selectedRowIndex: null,
+        images: {},
+      }]);
+      setActiveDocTab(parsedState.activeDocTab ?? null);
+      setActiveTableTab(parsedState.activeTableTab ?? 0);
+    }
+  }, []);
+
+  // Save state to localStorage when it changes
+  useEffect(() => {
+    const stateToSave = {
+      docs,
+      tables,
+      activeDocTab,
+      activeTableTab,
+    };
+    try {
+      localStorage.setItem('appState', JSON.stringify(stateToSave));
+    } catch (error) {
+      console.error('Failed to save state to localStorage:', error);
+      // Optionally, alert the user if storage limit is exceeded
+    }
+  }, [docs, tables, activeDocTab, activeTableTab]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -92,7 +130,7 @@ const App: React.FC = () => {
       setActiveDocTab(newDocs.length - 1);
       return newDocs;
     });
-    setFile(null); // Reset file input after upload
+    setFile(null);
   };
 
   const addTableTab = () => {
@@ -102,6 +140,7 @@ const App: React.FC = () => {
         {
           rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
           selectedRowIndex: null,
+          images: {},
         },
       ];
       setActiveTableTab(newTables.length - 1);
@@ -183,10 +222,8 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex gap-4 p-6 overflow-hidden bg-zinc-100">
-      {/* Left Section: Document Tabs */}
       <div
-        className={`transition-all duration-300 ${hiddenLeft ? 'w-12' : hiddenRight ? 'w-full' : 'w-2/5'
-          } flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
+        className={`transition-all duration-300 ${hiddenLeft ? 'w-12' : hiddenRight ? 'w-full' : 'w-2/5'} flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
       >
         <div className="flex-shrink-0 p-4 border-b border-zinc-200 flex items-center justify-between">
           {!hiddenLeft && (
@@ -216,18 +253,41 @@ const App: React.FC = () => {
           <>
             <div className="flex-shrink-0 p-4 border-b border-zinc-200">
               <div className="tabs flex gap-2 flex-wrap">
-                {docs.map((doc, index) => (
-                  <button
-                    key={index}
+                {docs.map((doc, index) => {
+                    const shortFileName = (() => {
+                    const fileNameWithoutExtension = doc.fileName.replace(/\.[^/.]+$/, '');
+                    return fileNameWithoutExtension.length > 15
+                      ? `${fileNameWithoutExtension.slice(0, 6)}...${fileNameWithoutExtension.slice(-6)}`
+                      : fileNameWithoutExtension;
+                    })();
+
+                  return (
+                  <div key={index} className="relative">
+                    <button
                     onClick={() => setActiveDocTab(index)}
-                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeDocTab === index
-                      ? 'bg-zinc-800 text-white'
-                      : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
-                      }`}
-                  >
-                    {doc.fileName}
-                  </button>
-                ))}
+                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 truncate ${activeDocTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}
+                    >
+                    {shortFileName}
+                    </button>
+                    <button
+                    onClick={() =>
+                      setDocs((prevDocs) => {
+                      const newDocs = prevDocs.filter((_, i) => i !== index);
+                      if (activeDocTab === index) {
+                        setActiveDocTab(newDocs.length > 0 ? 0 : null);
+                      } else if (activeDocTab !== null && activeDocTab > index) {
+                        setActiveDocTab((prev) => (prev !== null ? prev - 1 : 0));
+                      }
+                      return newDocs;
+                      })
+                    }
+                    className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    >
+                    ×
+                    </button>
+                  </div>
+                  );
+                })}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
@@ -243,10 +303,8 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Right Section: Table Tabs */}
       <div
-        className={`transition-all duration-300 ${hiddenRight ? 'w-96' : hiddenLeft ? 'w-full' : 'w-3/5'
-          } flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
+        className={`transition-all duration-300 ${hiddenRight ? 'w-96' : hiddenLeft ? 'w-full' : 'w-3/5'} flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
       >
         <div className="flex-shrink-0 p-4 border-b border-zinc-200 flex items-center justify-between">
           {!hiddenRight && (
@@ -255,10 +313,7 @@ const App: React.FC = () => {
                 <div key={index} className="relative">
                   <button
                     onClick={() => setActiveTableTab(index)}
-                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeTableTab === index
-                      ? 'bg-zinc-800 text-white'
-                      : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
-                      }`}
+                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeTableTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}
                   >
                     Table {index + 1}
                   </button>
@@ -311,13 +366,20 @@ const App: React.FC = () => {
                 setTables((prev) => {
                   const newTables = [...prev];
                   newTables[activeTableTab].rows =
-                    typeof newRows === 'function'
-                      ? newRows(newTables[activeTableTab].rows)
-                      : newRows;
+                    typeof newRows === 'function' ? newRows(newTables[activeTableTab].rows) : newRows;
                   return newTables;
                 })
               }
               addRow={addRow}
+              images={tables[activeTableTab].images}
+              setImages={(newImages) =>
+                setTables((prev) => {
+                  const newTables = [...prev];
+                  newTables[activeTableTab].images =
+                    typeof newImages === 'function' ? newImages(newTables[activeTableTab].images) : newImages;
+                  return newTables;
+                })
+              }
             />
           )}
         </div>

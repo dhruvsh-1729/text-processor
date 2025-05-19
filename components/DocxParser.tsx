@@ -24,7 +24,7 @@ const DocxParser: React.FC<DocxParserProps> = ({ sections, onPasteText, addGrant
     };
 
     return (
-        <div className="mt-8 overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full">
             <h2 className="text-xl font-semibold mb-4">Parsed Sections (Click to Copy)</h2>
             <table className="border border-gray-300 w-full table-fixed">
                 <thead className="bg-gray-100">
