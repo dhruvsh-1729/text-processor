@@ -7,7 +7,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// @ts-ignore - Skip type checking for font file
+// @ts-expect-error - Skip type checking for font file
 import { font } from './data/NotoSans-VariableFont_wdth,wght-normal';
 
 declare module 'jspdf' {
