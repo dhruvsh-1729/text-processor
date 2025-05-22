@@ -398,6 +398,7 @@ const App: React.FC = () => {
                   return newTables;
                 })
               }
+              tableName={tables[activeTableTab].name}
             />
           )}
         </div>

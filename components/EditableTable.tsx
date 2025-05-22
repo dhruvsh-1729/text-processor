@@ -26,6 +26,7 @@ interface EditableTableProps {
   addRow: () => void;
   images: { [key: number]: { src: string; crop: Crop }[] };
   setImages: React.Dispatch<React.SetStateAction<{ [key: number]: { src: string; crop: Crop }[] }>>;
+  tableName: string;
 }
 
 const registerNotoSans = () => {
@@ -48,6 +49,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
   addRow,
   images,
   setImages,
+  tableName,
 }) => {
   const inputRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
   const [currentImage, setCurrentImage] = useState<{ rowIndex: number; imageIndex: number; src: string } | null>(null);
@@ -154,7 +156,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
         data.cell.styles.font = 'NotoSansDevanagari';
       },
     });
-    doc.save('editable_table.pdf');
+    doc.save(`${tableName}.pdf`);
   };
 
   const exportToDocx = async () => {
@@ -293,7 +295,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
     });
 
     Packer.toBlob(doc).then((blob) => {
-      saveAs(blob, 'editable_table.docx');
+      saveAs(blob, `${tableName}.docx`);
     });
   };
 
