@@ -15,11 +15,13 @@ const App: React.FC = () => {
     rows: TableRow[];
     selectedRowIndex: number | null;
     images: { [key: number]: { src: string; crop: Crop }[] };
+    name: string;
   }>>([
     {
       rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
       selectedRowIndex: null,
       images: {},
+      name: 'Table 1'
     },
   ]);
   const [activeTableTab, setActiveTableTab] = useState<number>(0);
@@ -141,6 +143,7 @@ const App: React.FC = () => {
           rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
           selectedRowIndex: null,
           images: {},
+          name: `Table ${prevTables.length + 1}`,
         },
       ];
       setActiveTableTab(newTables.length - 1);
@@ -254,38 +257,38 @@ const App: React.FC = () => {
             <div className="flex-shrink-0 p-4 border-b border-zinc-200">
               <div className="tabs flex gap-2 flex-wrap">
                 {docs.map((doc, index) => {
-                    const shortFileName = (() => {
+                  const shortFileName = (() => {
                     const fileNameWithoutExtension = doc.fileName.replace(/\.[^/.]+$/, '');
                     return fileNameWithoutExtension.length > 15
                       ? `${fileNameWithoutExtension.slice(0, 6)}...${fileNameWithoutExtension.slice(-6)}`
                       : fileNameWithoutExtension;
-                    })();
+                  })();
 
                   return (
-                  <div key={index} className="relative">
-                    <button
-                    onClick={() => setActiveDocTab(index)}
-                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 truncate ${activeDocTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}
-                    >
-                    {shortFileName}
-                    </button>
-                    <button
-                    onClick={() =>
-                      setDocs((prevDocs) => {
-                      const newDocs = prevDocs.filter((_, i) => i !== index);
-                      if (activeDocTab === index) {
-                        setActiveDocTab(newDocs.length > 0 ? 0 : null);
-                      } else if (activeDocTab !== null && activeDocTab > index) {
-                        setActiveDocTab((prev) => (prev !== null ? prev - 1 : 0));
-                      }
-                      return newDocs;
-                      })
-                    }
-                    className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                    >
-                    ×
-                    </button>
-                  </div>
+                    <div key={index} className="relative">
+                      <button
+                        onClick={() => setActiveDocTab(index)}
+                        className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 truncate ${activeDocTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}
+                      >
+                        {shortFileName}
+                      </button>
+                      <button
+                        onClick={() =>
+                          setDocs((prevDocs) => {
+                            const newDocs = prevDocs.filter((_, i) => i !== index);
+                            if (activeDocTab === index) {
+                              setActiveDocTab(newDocs.length > 0 ? 0 : null);
+                            } else if (activeDocTab !== null && activeDocTab > index) {
+                              setActiveDocTab((prev) => (prev !== null ? prev - 1 : 0));
+                            }
+                            return newDocs;
+                          })
+                        }
+                        className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -315,8 +318,23 @@ const App: React.FC = () => {
                     onClick={() => setActiveTableTab(index)}
                     className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeTableTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}
                   >
-                    Table {index + 1}
+                    {_.name}
                   </button>
+                    <button
+                    onClick={() => {
+                      const newName = prompt("Enter new table name:", tables[index].name);
+                      if (newName) {
+                      setTables((prevTables) => {
+                        const updatedTables = [...prevTables];
+                        updatedTables[index].name = newName;
+                        return updatedTables;
+                      });
+                      }
+                    }}
+                    className="absolute top-0 right-5 transform translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    >
+                    ✎
+                    </button>
                   <button
                     onClick={() =>
                       setTables((prevTables) => {
