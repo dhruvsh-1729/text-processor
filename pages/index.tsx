@@ -97,8 +97,23 @@ const App: React.FC = () => {
 
     const arrayBuffer = await file.arrayBuffer();
     const { value } = await mammoth.convertToHtml({ arrayBuffer });
-    const rawSections = value.split(/(?=<p>ग्रंथ :-)/);
 
+    // Detect file type based on filename
+    let fileType = file.name.includes("APC") ? "APC" : "SP";
+
+    // Set section splitter based on file type
+    let sectionSplitter;
+    if (fileType === "APC") {
+      sectionSplitter = /(?=<p>ग्रंथ :-)/;
+    } else { // SP
+      sectionSplitter = /(?<=क्रम :-)/;
+    }
+
+    // Split the HTML content into sections
+    const rawSections = value.split(sectionSplitter);
+    console.log({ rawSections });
+
+    // Parse each section
     const parsed: ParsedSection[] = rawSections.map((sectionHtml) => {
       const wrapper = document.createElement('div');
       wrapper.innerHTML = sectionHtml;
@@ -111,12 +126,37 @@ const App: React.FC = () => {
         textLines: string[] = [];
 
       for (const line of lines) {
-        if (line.startsWith('ग्रंथ :-')) {
-          granth = line.replace('ग्रंथ :-', '').trim();
-          granth = granth.split('(प्रकाशक')[0].trim();
-        } else if (line.startsWith('Adhyay :-')) adhyay = line.replace('Adhyay :-', '').trim();
-        else if (line.startsWith('Pointers :-')) pointers = line.replace('Pointers :-', '').trim();
-        else textLines.push(line);
+        if (fileType === "APC") {
+          if (line.startsWith('ग्रंथ :-')) {
+            granth = line.replace('ग्रंथ :-', '').trim();
+            granth = granth.split('(प्रकाशक')[0].trim();
+          } else if (line.startsWith('Adhyay :-')) {
+            adhyay = line.replace('Adhyay :-', '').trim();
+          } else if (line.startsWith('Pointers :-')) {
+            pointers = line.replace('Pointers :-', '').trim();
+          } else {
+            textLines.push(line);
+          }
+        } else { // SP
+            if (line.startsWith('क्रम :-')) {
+            pointers = line.replace('क्रम :-', '').trim();
+            } else if (line.startsWith('ग्रंथ :-')) {
+            granth = line.replace('ग्रंथ :-', '').trim();
+            granth = granth.split('(प्रकाशक')[0].trim();
+            if (pointers) {
+              granth = `${granth}\n${pointers}`;
+              pointers = ''; // Clear pointers after appending to granth
+            }
+            } else if (line.startsWith('Adhyay :-')) {
+            adhyay = line.replace('Adhyay :-', '').trim();
+            } else if (line.startsWith('स्थान :-')) {
+            if (!adhyay) { // Set only if Adhyay is not already set
+              adhyay = line.replace('स्थान :-', '').trim();
+            }
+            } else {
+            textLines.push(line);
+            }
+        }
       }
 
       return {
@@ -127,6 +167,7 @@ const App: React.FC = () => {
       };
     });
 
+    // Update state with parsed data
     setDocs((prevDocs) => {
       const newDocs = [...prevDocs, { fileName: file.name, sections: parsed }];
       setActiveDocTab(newDocs.length - 1);
@@ -170,14 +211,16 @@ const App: React.FC = () => {
 
         const updatedRow = {
           ...row,
-          col4: `${row.col4 && row.col4.trim().includes(remainingText)
-            ? row.col4.trim()
-            : `${row.col4?.trim() || ''}${hasDifferentNumber && row.col4?.trim() ? '......................' : ''}\n${remainingText}`}`,
-          col6: row.col6
+          col4: `\n${row.col4?.trim()
+            ? `${row.col4.trim().includes(remainingText)
+              ? row.col4.trim()
+              : `${row.col4.trim()}${hasDifferentNumber ? '......................\n' : ''}${remainingText}`}`
+            : remainingText}`,
+          col6: `\n${row.col6
             ? Array.from(new Set([...existingNumbers, ...newNumbers]))
               .filter((text) => text.trim() !== '')
               .join('\n')
-            : clippedText,
+            : clippedText}`,
         };
 
         activeTable.rows = activeTable.rows.map((r, idx) => (idx === selectedRowIndex ? updatedRow : r));
@@ -214,7 +257,9 @@ const App: React.FC = () => {
 
         const updatedRow = {
           ...row,
-          col3: existingGranths.join('\n\n'),
+          col3: `\n${row.col3.trim() === '' 
+            ? existingGranths.join('\n') 
+            : existingGranths.join('\n')}`,
         };
 
         activeTable.rows = activeTable.rows.map((r, idx) => (idx === selectedRowIndex ? updatedRow : r));
@@ -320,21 +365,21 @@ const App: React.FC = () => {
                   >
                     {_.name}
                   </button>
-                    <button
+                  <button
                     onClick={() => {
                       const newName = prompt("Enter new table name:", tables[index].name);
                       if (newName) {
-                      setTables((prevTables) => {
-                        const updatedTables = [...prevTables];
-                        updatedTables[index].name = newName;
-                        return updatedTables;
-                      });
+                        setTables((prevTables) => {
+                          const updatedTables = [...prevTables];
+                          updatedTables[index].name = newName;
+                          return updatedTables;
+                        });
                       }
                     }}
                     className="absolute top-0 right-5 transform translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                    >
+                  >
                     ✎
-                    </button>
+                  </button>
                   <button
                     onClick={() =>
                       setTables((prevTables) => {
