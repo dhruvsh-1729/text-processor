@@ -14,7 +14,7 @@ const App: React.FC = () => {
   const [tables, setTables] = useState<Array<{
     rows: TableRow[];
     selectedRowIndex: number | null;
-    images: { [key: number]: { src: string; crop: Crop }[] };
+    images: { [key: number]: { originalSrc: string; croppedSrc: string; crop: Crop }[] };
     name: string;
   }>>([
     {
