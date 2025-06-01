@@ -84,7 +84,7 @@ const registerNotoSans = () => {
 };
 
 // Sorting function
-const getSortedRows = (rows: TableRow[]) => {
+const getSortedRows = (rows: TableRow[], includeThirdSortOrder: boolean = false) => {
   const col2Order = ['व्यु', 'व्या', 'साल', 'ल', 'लचि', 'पर्या', 'विक.', 'स्व', 'परि'];
   const getCol2Index = (col2: string) => {
     const index = col2Order.indexOf(col2);
@@ -99,12 +99,22 @@ const getSortedRows = (rows: TableRow[]) => {
     if (aCol2Index !== bCol2Index) {
       return aCol2Index - bCol2Index;
     }
-    const aFirstLine = getFirstLine(a.col4 || '');
-    const bFirstLine = getFirstLine(b.col4 || '');
-    if (aFirstLine === '' && bFirstLine !== '') return 1;
-    if (bFirstLine === '' && aFirstLine !== '') return -1;
-    if (aFirstLine === '' && bFirstLine === '') return 0;
-    return aFirstLine.localeCompare(bFirstLine);
+    if (!includeThirdSortOrder) {
+      const aCol3 = a.col3 || '';
+      const bCol3 = b.col3 || '';
+      if (aCol3 !== bCol3) {
+        return aCol3.localeCompare(bCol3);
+      }
+    }
+    else if (includeThirdSortOrder) {
+      const aFirstLine = getFirstLine(a.col4 || '');
+      const bFirstLine = getFirstLine(b.col4 || '');
+      if (aFirstLine === '' && bFirstLine !== '') return 1;
+      if (bFirstLine === '' && aFirstLine !== '') return -1;
+      if (aFirstLine === '' && bFirstLine === '') return 0;
+      return aFirstLine.localeCompare(bFirstLine);
+    }
+    return 0; // Ensure a valid number is always returned
   });
 };
 
@@ -202,39 +212,39 @@ const EditableTable: React.FC<EditableTableProps> = ({
   };
 
   const getCroppedImage = (image: HTMLImageElement, crop: Crop): Promise<string> => {
-      const canvas = document.createElement('canvas');
-      const scaleX = image.naturalWidth / image.width;
-      const scaleY = image.naturalHeight / image.height;
-      const cropWidth = crop.width * scaleX;
-      const cropHeight = crop.height * scaleY;
-  
-      canvas.width = cropWidth;
-      canvas.height = cropHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(
-          image,
-          crop.x * scaleX,
-          crop.y * scaleY,
-          cropWidth,
-          cropHeight,
-          0,
-          0,
-          cropWidth,
-          cropHeight
-        );
-      }
-  
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          }
-        }, 'image/jpeg', 0.9);
-      });
-    };
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    const cropWidth = crop.width * scaleX;
+    const cropHeight = crop.height * scaleY;
+
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(
+        image,
+        crop.x * scaleX,
+        crop.y * scaleY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        cropWidth,
+        cropHeight
+      );
+    }
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        }
+      }, 'image/jpeg', 0.9);
+    });
+  };
 
   const handleCropComplete = (rowIndex: number, imageIndex: number, croppedImage: string) => {
     saveState();
@@ -283,11 +293,11 @@ const EditableTable: React.FC<EditableTableProps> = ({
     doc.save(`${tableName}.pdf`);
   };
 
-  const exportToDocx = async () => {
+  const exportToDocx = async (includeSort: boolean) => {
     // Adjusted column widths based on Box-2.doc proportions (in DXA units)
     const columnWidths = [800, 1000, 2500, 6000, 2000, 1500];
     const headers = ['Sr.', 'V.T', 'Granth', 'ShastraPath', 'Pub. Rem', 'In. Rem'];
-    const sortedRows = getSortedRows(rows);
+    const sortedRows = getSortedRows(rows, includeSort);
 
     const headerRow = new TRow({
       children: headers.map((header, idx) =>
@@ -430,7 +440,15 @@ const EditableTable: React.FC<EditableTableProps> = ({
     <div ref={tableRef} className="text-sm">
       <h2 className="text-lg font-semibold mb-4 flex items-center justify-between gap-6">
         Editable Table
-        <button onClick={exportToDocx} className="px-3 py-1 text-xs bg-orange-500 text-white rounded">
+        <button
+          onClick={() => {
+            const includeSort = window.confirm(
+              "Do you want sorted order with Vishay name in the first line of Shaastrapath? This could change the order based on Granth name."
+            );
+            exportToDocx(includeSort);
+          }}
+          className="px-3 py-1 text-xs bg-orange-500 text-white rounded"
+        >
           Export to docx
         </button>
       </h2>
@@ -617,9 +635,9 @@ const EditableTable: React.FC<EditableTableProps> = ({
                             prevRows.map((r) =>
                               r.id === row.id
                                 ? {
-                                    ...r,
-                                    col5: selectedValue + (['RA', 'RC', 'RS'].includes(selectedValue) ? '=' : ''),
-                                  }
+                                  ...r,
+                                  col5: selectedValue + (['RA', 'RC', 'RS'].includes(selectedValue) ? '=' : ''),
+                                }
                                 : r
                             )
                           );

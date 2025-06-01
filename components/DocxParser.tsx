@@ -3,7 +3,7 @@ import { ParsedSection } from './types';
 
 interface DocxParserProps {
     sections: ParsedSection[];
-    onPasteText: (text: string) => void;
+    onPasteText: (text: string, granth: string) => void;
     addGranth: (granth: string) => void;
 }
 
@@ -12,13 +12,14 @@ const DocxParser: React.FC<DocxParserProps> = ({ sections, onPasteText, addGrant
         const selection = window.getSelection();
         const selectedText = selection?.toString().trim();
         const granth = sections[index].Granth + '\n' + sections[index].Adhyay;
+        const onlyGranth = sections[index].Granth;
 
         if (selectedText) {
-            onPasteText(selectedText.split('See Code')[0].trim());
+            onPasteText(selectedText.split('See Code')[0].trim(), onlyGranth);
             addGranth(granth);
         } else {
             // If no text is selected, fallback to the entire section text
-            onPasteText(sectionText.trim().replace(/<br\/>/g, '\n').split('See Code')[0].trim());
+            onPasteText(sectionText.trim().replace(/<br\/>/g, '\n').split('See Code')[0].trim(), onlyGranth);
             addGranth(granth);
         }
     };

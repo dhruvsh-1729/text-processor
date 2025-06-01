@@ -11,20 +11,25 @@ const App: React.FC = () => {
   const [activeDocTab, setActiveDocTab] = useState<number | null>(null);
   const [hiddenLeft, setHiddenLeft] = useState<boolean>(false);
   const [hiddenRight, setHiddenRight] = useState<boolean>(false);
-  const [tables, setTables] = useState<Array<{
-    rows: TableRow[];
-    selectedRowIndex: number | null;
-    images: { [key: number]: { originalSrc: string; croppedSrc: string; crop: Crop }[] };
+  const [sections, setSections] = useState<Array<{
     name: string;
-  }>>([
-    {
+    tables: Array<{
+      rows: TableRow[];
+      selectedRowIndex: number | null;
+      images: { [key: number]: { originalSrc: string; croppedSrc: string; crop: Crop }[] };
+      name: string;
+    }>;
+  }>>([{
+    name: 'Section 1',
+    tables: [{
       rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
       selectedRowIndex: null,
       images: {},
       name: 'Table 1'
-    },
-  ]);
-  const [activeTableTab, setActiveTableTab] = useState<number>(0);
+    }]
+  }]);
+  const [activeSectionTab, setActiveSectionTab] = useState<number | null>(0);
+  const [activeTableTab, setActiveTableTab] = useState<number | null>(0);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -32,12 +37,17 @@ const App: React.FC = () => {
     if (savedState) {
       const parsedState = JSON.parse(savedState);
       setDocs(parsedState.docs || []);
-      setTables(parsedState.tables || [{
-        rows: [{ power: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
-        selectedRowIndex: null,
-        images: {},
+      setSections(parsedState.sections || [{
+        name: 'Section 1',
+        tables: [{
+          rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
+          selectedRowIndex: null,
+          images: {},
+          name: 'Table 1'
+        }]
       }]);
       setActiveDocTab(parsedState.activeDocTab ?? null);
+      setActiveSectionTab(parsedState.activeSectionTab ?? 0);
       setActiveTableTab(parsedState.activeTableTab ?? 0);
     }
   }, []);
@@ -46,17 +56,17 @@ const App: React.FC = () => {
   useEffect(() => {
     const stateToSave = {
       docs,
-      tables,
+      sections,
       activeDocTab,
+      activeSectionTab,
       activeTableTab,
     };
     try {
       localStorage.setItem('appState', JSON.stringify(stateToSave));
     } catch (error) {
       console.error('Failed to save state to localStorage:', error);
-      // Optionally, alert the user if storage limit is exceeded
     }
-  }, [docs, tables, activeDocTab, activeTableTab]);
+  }, [docs, sections, activeDocTab, activeSectionTab, activeTableTab]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -71,21 +81,36 @@ const App: React.FC = () => {
   };
 
   const addRow = () => {
-    setTables((prevTables) => {
-      const newTables = [...prevTables];
-      const activeTable = { ...newTables[activeTableTab] };
-      const newRow = {
-        id: activeTable.rows.length + 1,
-        col1: '',
-        col2: 'स्व',
-        col3: '',
-        col4: '\n',
-        col5: '',
-        col6: '',
-      };
-      activeTable.rows = [...activeTable.rows, newRow];
-      newTables[activeTableTab] = activeTable;
-      return newTables;
+    if (activeSectionTab === null || activeTableTab === null) return;
+    setSections((prevSections) => {
+      const newSections = prevSections.map((section, sectionIndex) => {
+        if (sectionIndex === activeSectionTab) {
+          const updatedTables = section.tables.map((table, tableIndex) => {
+            if (tableIndex === activeTableTab) {
+              const newRow = {
+                id: table.rows.length + 1,
+                col1: '',
+                col2: 'स्व',
+                col3: '',
+                col4: '\n',
+                col5: '',
+                col6: '',
+              };
+              return {
+                ...table,
+                rows: [...table.rows, newRow],
+              };
+            }
+            return table;
+          });
+          return {
+            ...section,
+            tables: updatedTables,
+          };
+        }
+        return section;
+      });
+      return newSections;
     });
   };
 
@@ -98,22 +123,15 @@ const App: React.FC = () => {
     const arrayBuffer = await file.arrayBuffer();
     const { value } = await mammoth.convertToHtml({ arrayBuffer });
 
-    // Detect file type based on filename
     let fileType = file.name.includes("APC") ? "APC" : "SP";
-
-    // Set section splitter based on file type
     let sectionSplitter;
     if (fileType === "APC") {
       sectionSplitter = /(?=<p>ग्रंथ :-)/;
-    } else { // SP
+    } else {
       sectionSplitter = /(?<=क्रम :-)/;
     }
 
-    // Split the HTML content into sections
     const rawSections = value.split(sectionSplitter);
-    console.log({ rawSections });
-
-    // Parse each section
     const parsed: ParsedSection[] = rawSections.map((sectionHtml) => {
       const wrapper = document.createElement('div');
       wrapper.innerHTML = sectionHtml;
@@ -137,25 +155,25 @@ const App: React.FC = () => {
           } else {
             textLines.push(line);
           }
-        } else { // SP
-            if (line.startsWith('क्रम :-')) {
+        } else {
+          if (line.startsWith('क्रम :-')) {
             pointers = line.replace('क्रम :-', '').trim();
-            } else if (line.startsWith('ग्रंथ :-')) {
+          } else if (line.startsWith('ग्रंथ :-')) {
             granth = line.replace('ग्रंथ :-', '').trim();
             granth = granth.split('(प्रकाशक')[0].trim();
             if (pointers) {
               granth = `${granth}\n${pointers}`;
-              pointers = ''; // Clear pointers after appending to granth
+              pointers = '';
             }
-            } else if (line.startsWith('Adhyay :-')) {
+          } else if (line.startsWith('Adhyay :-')) {
             adhyay = line.replace('Adhyay :-', '').trim();
-            } else if (line.startsWith('स्थान :-')) {
-            if (!adhyay) { // Set only if Adhyay is not already set
+          } else if (line.startsWith('स्थान :-')) {
+            if (!adhyay) {
               adhyay = line.replace('स्थान :-', '').trim();
             }
-            } else {
+          } else {
             textLines.push(line);
-            }
+          }
         }
       }
 
@@ -167,7 +185,6 @@ const App: React.FC = () => {
       };
     });
 
-    // Update state with parsed data
     setDocs((prevDocs) => {
       const newDocs = [...prevDocs, { fileName: file.name, sections: parsed }];
       setActiveDocTab(newDocs.length - 1);
@@ -177,25 +194,51 @@ const App: React.FC = () => {
   };
 
   const addTableTab = () => {
-    setTables((prevTables) => {
-      const newTables = [
-        ...prevTables,
+    if (activeSectionTab === null) return;
+    setSections((prevSections) => {
+      const newSections = [...prevSections];
+      const activeSection = { ...newSections[activeSectionTab] };
+      activeSection.tables = [
+        ...activeSection.tables,
         {
           rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
           selectedRowIndex: null,
           images: {},
-          name: `Table ${prevTables.length + 1}`,
+          name: `Table ${activeSection.tables.length + 1}`,
         },
       ];
-      setActiveTableTab(newTables.length - 1);
-      return newTables;
+      newSections[activeSectionTab] = activeSection;
+      setActiveTableTab(activeSection.tables.length - 1);
+      return newSections;
     });
   };
 
-  const handlePasteFromParsed = (text: string) => {
-    setTables((prevTables) => {
-      const newTables = [...prevTables];
-      const activeTable = newTables[activeTableTab];
+  const addSectionTab = () => {
+    setSections((prevSections) => {
+      const newSections = [
+        ...prevSections,
+        {
+          name: `Section ${prevSections.length + 1}`,
+          tables: [{
+            rows: [{ id: 1, col1: '', col2: 'स्व', col3: '', col4: '\n', col5: '', col6: '' }],
+            selectedRowIndex: null,
+            images: {},
+            name: 'Table 1',
+          }],
+        },
+      ];
+      setActiveSectionTab(newSections.length - 1);
+      setActiveTableTab(0);
+      return newSections;
+    });
+  };
+
+  const handlePasteFromParsed = (text: string, granth: string) => {
+    if (activeSectionTab === null || activeTableTab === null) return;
+    setSections((prevSections) => {
+      const newSections = [...prevSections];
+      const activeSection = newSections[activeSectionTab];
+      const activeTable = activeSection.tables[activeTableTab];
       const selectedRowIndex = activeTable.selectedRowIndex;
 
       if (selectedRowIndex !== null) {
@@ -220,19 +263,21 @@ const App: React.FC = () => {
             ? Array.from(new Set([...existingNumbers, ...newNumbers]))
               .filter((text) => text.trim() !== '')
               .join('\n')
-            : clippedText}`,
+            : clippedText}${hasDifferentNumber ? `\n${granth}` : ''}`,
         };
 
         activeTable.rows = activeTable.rows.map((r, idx) => (idx === selectedRowIndex ? updatedRow : r));
       }
-      return newTables;
+      return newSections;
     });
   };
 
   const addGranth = (granth: string) => {
-    setTables((prevTables) => {
-      const newTables = [...prevTables];
-      const activeTable = newTables[activeTableTab];
+    if (activeSectionTab === null || activeTableTab === null) return;
+    setSections((prevSections) => {
+      const newSections = [...prevSections];
+      const activeSection = newSections[activeSectionTab];
+      const activeTable = activeSection.tables[activeTableTab];
       const selectedRowIndex = activeTable.selectedRowIndex;
 
       if (selectedRowIndex !== null) {
@@ -257,14 +302,14 @@ const App: React.FC = () => {
 
         const updatedRow = {
           ...row,
-          col3: `\n${row.col3.trim() === '' 
-            ? existingGranths.join('\n') 
-            : existingGranths.join('\n')}`,
+          col3: `\n${row.col3.trim() === ''
+            ? existingGranths.join('\n')
+            : existingGranths.join('\n\n')}`,
         };
 
         activeTable.rows = activeTable.rows.map((r, idx) => (idx === selectedRowIndex ? updatedRow : r));
       }
-      return newTables;
+      return newSections;
     });
   };
 
@@ -354,97 +399,185 @@ const App: React.FC = () => {
       <div
         className={`transition-all duration-300 ${hiddenRight ? 'w-96' : hiddenLeft ? 'w-full' : 'w-3/5'} flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
       >
-        <div className="flex-shrink-0 p-4 border-b border-zinc-200 flex items-center justify-between">
-          {!hiddenRight && (
-            <div className="tabs flex gap-2 flex-wrap">
-              {tables.map((_, index) => (
-                <div key={index} className="relative">
-                  <button
-                    onClick={() => setActiveTableTab(index)}
-                    className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 ${activeTableTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}
-                  >
-                    {_.name}
-                  </button>
+        <div className="flex items-center gap-2 p-2 border-b border-zinc-200 text-sm">
+          <div className="flex items-center gap-2">
+            <select
+              value={activeSectionTab ?? ''}
+              onChange={(e) => {
+                const index = parseInt(e.target.value, 10);
+                setActiveSectionTab(index);
+                setActiveTableTab(sections[index].tables.length > 0 ? 0 : null);
+              }}
+              className="border border-zinc-300 p-1 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 text-sm"
+              disabled={sections.length === 0}
+            >
+              {sections.map((section, index) => (
+                <option key={index} value={index}>
+                  {section.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={addSectionTab}
+              className="bg-zinc-800 text-white p-2 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 text-sm"
+              title="Add Section"
+            >
+              ➕
+            </button>
+            {sections.length > 0 ? (
+              <>
+                <button
+                  onClick={() => {
+                    const confirmDelete = window.confirm('Are you sure you want to delete this section?');
+                    if (!confirmDelete) return;
+
+                    setSections((prevSections) => {
+                      const newSections = prevSections.filter((_, i) => i !== activeSectionTab);
+                      if (newSections.length > 0) {
+                        setActiveSectionTab(0);
+                        setActiveTableTab(newSections[0].tables.length > 0 ? 0 : null);
+                      } else {
+                        setActiveSectionTab(null);
+                        setActiveTableTab(null);
+                      }
+                      return newSections;
+                    });
+                  }}
+                  className="bg-red-500 text-white p-2 rounded hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm"
+                  title="Delete Section"
+                >
+                  🗑️
+                </button>
+                <button
+                  onClick={() => {
+                    const newName = activeSectionTab !== null ? prompt('Enter new section name:', sections[activeSectionTab].name) : null;
+                    if (newName) {
+                      setSections((prevSections) => {
+                        const newSections = [...prevSections];
+                        if (activeSectionTab !== null) {
+                          newSections[activeSectionTab].name = newName;
+                        }
+                        return newSections;
+                      });
+                    }
+                  }}
+                  className="bg-blue-500 text-white p-2 rounded hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                  title="Rename Section"
+                >
+                  ✏️
+                </button>
+              </>
+            ) : (
+              <span className="text-zinc-500 text-sm">No sections available</span>
+            )}
+            <button
+              onClick={() => setHiddenRight(!hiddenRight)}
+              className="bg-zinc-800 text-white p-2 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 text-sm"
+              title="Toggle View"
+            >
+              {hiddenRight ? '<' : '>'}
+            </button>
+          </div>
+        </div>
+        {sections.length > 0 && activeSectionTab !== null && (
+          <div className="flex items-center gap-2 p-2 border-b border-zinc-200 text-sm overflow-x-auto">
+            {sections[activeSectionTab]?.tables.map((table, index) => (
+              <div key={index} className="relative">
+                <button
+                  onClick={() => setActiveTableTab(index)}
+                  className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-zinc-500 text-sm ${activeTableTab === index ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
+                    }`}
+                >
+                  {table.name}
+                </button>
+                <div className="absolute -top-2 -right-2 flex gap-0.5 text-[10px]">
                   <button
                     onClick={() => {
-                      const newName = prompt("Enter new table name:", tables[index].name);
+                      const newName = prompt('Enter new table name:', table.name);
                       if (newName) {
-                        setTables((prevTables) => {
-                          const updatedTables = [...prevTables];
-                          updatedTables[index].name = newName;
-                          return updatedTables;
+                        setSections((prevSections) => {
+                          const newSections = [...prevSections];
+                          newSections[activeSectionTab].tables[index].name = newName;
+                          return newSections;
                         });
                       }
                     }}
-                    className="absolute top-0 right-5 transform translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    className="bg-blue-500 text-white px-0.5 py-0.5 rounded hover:bg-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300 text-[10px]"
+                    title="Rename Table"
                   >
-                    ✎
+                    ✏️
                   </button>
                   <button
-                    onClick={() =>
-                      setTables((prevTables) => {
-                        const newTables = prevTables.filter((_, i) => i !== index);
-                        if (activeTableTab === index) {
-                          setActiveTableTab(newTables.length > 0 ? 0 : 0);
-                        } else if (activeTableTab > index) {
-                          setActiveTableTab((prev) => prev - 1);
+                    onClick={() => {
+                      const confirmDelete = window.confirm('Are you sure you want to delete this table?');
+                      if (!confirmDelete) return;
+
+                      setSections((prevSections) => {
+                        const newSections = [...prevSections];
+                        const activeSection = newSections[activeSectionTab];
+                        const newTables = activeSection.tables.filter((_, i) => i !== index);
+                        activeSection.tables = newTables;
+
+                        if (newTables.length === 0) {
+                          setActiveTableTab(null);
+                        } else if (activeTableTab !== null && index <= activeTableTab) {
+                          setActiveTableTab((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
                         }
-                        return newTables;
-                      })
-                    }
-                    className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+
+                        return newSections;
+                      });
+                    }}
+                    className="bg-red-500 text-white px-0.5 py-0.5 rounded hover:bg-red-400 focus:outline-none focus:ring-1 focus:ring-red-300 text-[10px]"
+                    title="Delete Table"
                   >
-                    ×
+                    🗑️
                   </button>
                 </div>
-              ))}
-              <button
-                onClick={addTableTab}
-                className="px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-              >
-                Add Table
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setHiddenRight(!hiddenRight)}
-            className="bg-zinc-800 text-white px-2 py-1 rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-          >
-            {hiddenRight ? '<' : '>'}
-          </button>
-        </div>
+              </div>
+            ))}
+            <button
+              onClick={addTableTab}
+              className="px-2 py-1 bg-zinc-800 text-white rounded hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 text-sm"
+              title="Add Table"
+            >
+              ➕
+            </button>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto p-4">
-          {tables[activeTableTab] && (
+          {activeSectionTab !== null && activeTableTab !== null && sections[activeSectionTab]?.tables[activeTableTab] ? (
             <EditableTable
-              rows={tables[activeTableTab].rows}
-              selectedRowIndex={tables[activeTableTab].selectedRowIndex}
+              rows={sections[activeSectionTab].tables[activeTableTab].rows}
+              selectedRowIndex={sections[activeSectionTab].tables[activeTableTab].selectedRowIndex}
               setSelectedRowIndex={(index) =>
-                setTables((prev) => {
-                  const newTables = [...prev];
-                  newTables[activeTableTab].selectedRowIndex = index;
-                  return newTables;
+                setSections((prev) => {
+                  const newSections = [...prev];
+                  newSections[activeSectionTab].tables[activeTableTab].selectedRowIndex = index;
+                  return newSections;
                 })
               }
               setRows={(newRows) =>
-                setTables((prev) => {
-                  const newTables = [...prev];
-                  newTables[activeTableTab].rows =
-                    typeof newRows === 'function' ? newRows(newTables[activeTableTab].rows) : newRows;
-                  return newTables;
+                setSections((prev) => {
+                  const newSections = [...prev];
+                  newSections[activeSectionTab].tables[activeTableTab].rows =
+                    typeof newRows === 'function' ? newRows(newSections[activeSectionTab].tables[activeTableTab].rows) : newRows;
+                  return newSections;
                 })
               }
               addRow={addRow}
-              images={tables[activeTableTab].images}
+              images={sections[activeSectionTab].tables[activeTableTab].images}
               setImages={(newImages) =>
-                setTables((prev) => {
-                  const newTables = [...prev];
-                  newTables[activeTableTab].images =
-                    typeof newImages === 'function' ? newImages(newTables[activeTableTab].images) : newImages;
-                  return newTables;
+                setSections((prev) => {
+                  const newSections = [...prev];
+                  newSections[activeSectionTab].tables[activeTableTab].images =
+                    typeof newImages === 'function' ? newImages(newSections[activeSectionTab].tables[activeTableTab].images) : newImages;
+                  return newSections;
                 })
               }
-              tableName={tables[activeTableTab].name}
+              tableName={sections[activeSectionTab].tables[activeTableTab].name}
             />
+          ) : (
+            <div className="text-zinc-500 text-center p-4">No tables available in this section</div>
           )}
         </div>
       </div>
