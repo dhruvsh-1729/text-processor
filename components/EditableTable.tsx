@@ -293,9 +293,10 @@ const EditableTable: React.FC<EditableTableProps> = ({
     doc.save(`${tableName}.pdf`);
   };
 
+  
   const exportToDocx = async (includeSort: boolean) => {
-    // Adjusted column widths based on Box-2.doc proportions (in DXA units)
-    const columnWidths = [800, 1000, 2500, 6000, 2000, 1500];
+    const columnWidths = [4, 4, 18, 50, 17, 17]; // DXA units, matching Box-2.doc
+    const totalWidth = 13800; // Sum of columnWidths
     const headers = ['Sr.', 'V.T', 'Granth', 'ShastraPath', 'Pub. Rem', 'In. Rem'];
     const sortedRows = getSortedRows(rows, includeSort);
 
@@ -303,9 +304,11 @@ const EditableTable: React.FC<EditableTableProps> = ({
       children: headers.map((header, idx) =>
         new TableCell({
           width: { size: columnWidths[idx], type: WidthType.DXA },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
           children: [
             new Paragraph({
               children: [new TextRun({ text: header, bold: true, font: 'Noto Sans Devanagari' })],
+              style: 'header',
             }),
           ],
         })
@@ -323,8 +326,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
             const arrayBuffer = await blob.arrayBuffer();
             return new ImageRun({
               data: arrayBuffer,
-              transformation: { width: 100, height: 100 },
-              type: 'png',
+              transformation: { width: 100, height: 100 }, // Fits within 6000 DXA
+              type: "png"
             });
           })
         );
@@ -333,98 +336,63 @@ const EditableTable: React.FC<EditableTableProps> = ({
           children: [
             new TableCell({
               width: { size: columnWidths[0], type: WidthType.DXA },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: String(index + 1), font: 'Noto Sans Devanagari' })],
-                }),
-              ],
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              children: [new Paragraph({ children: [new TextRun({ text: String(index + 1), font: 'Noto Sans Devanagari' })] })],
             }),
             new TableCell({
               width: { size: columnWidths[1], type: WidthType.DXA },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: row.col2 || '', font: 'Noto Sans Devanagari' })],
-                }),
-              ],
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              children: [new Paragraph({ children: [new TextRun({ text: row.col2 || '', font: 'Noto Sans Devanagari' })] })],
             }),
             new TableCell({
               width: { size: columnWidths[2], type: WidthType.DXA },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: row.col3 || '', font: 'Noto Sans Devanagari' })],
-                }),
-              ],
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              children: [new Paragraph({ children: [new TextRun({ text: row.col3 || '', font: 'Noto Sans Devanagari' })] })],
             }),
             new TableCell({
               width: { size: columnWidths[3], type: WidthType.DXA },
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
               children: [
-                new Paragraph({
-                  children: [new TextRun({ text: row.col4 || '', font: 'Noto Sans Devanagari' })],
-                }),
+                new Paragraph({ children: [new TextRun({ text: row.col4 || '', font: 'Noto Sans Devanagari' })] }),
                 ...imageElements.map(img => new Paragraph({ children: [img] })),
               ],
             }),
             new TableCell({
               width: { size: columnWidths[4], type: WidthType.DXA },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: row.col5 || '', font: 'Noto Sans Devanagari' })],
-                }),
-              ],
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              children: [new Paragraph({ children: [new TextRun({ text: row.col5 || '', font: 'Noto Sans Devanagari' })] })],
             }),
             new TableCell({
               width: { size: columnWidths[5], type: WidthType.DXA },
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: row.col6 || '', font: 'Noto Sans Devanagari' })],
-                }),
-              ],
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              children: [new Paragraph({ children: [new TextRun({ text: row.col6 || '', font: 'Noto Sans Devanagari' })] })],
             }),
           ],
         });
-      })
-    );
+        })
+  );
 
     const table = new Table({
-      rows: [headerRow, ...dataRows],
       width: { size: 100, type: WidthType.PERCENTAGE },
       layout: TableLayoutType.FIXED,
+      rows: [headerRow, ...dataRows],
+      columnWidths: columnWidths,
     });
 
     const doc = new Document({
-      sections: [
-        {
-          properties: {
-            page: {
-              margin: { top: 720, right: 360, bottom: 720, left: 360 },
-              size: { orientation: 'landscape' },
-            },
+      sections: [{
+        properties: {
+          page: {
+            margin: { top: 720, right: 360, bottom: 720, left: 360 },
+            size: { orientation: 'landscape' }, // A4 landscape in DXA
           },
-          children: [table],
         },
-      ],
+        children: [table],
+      }],
       styles: {
         paragraphStyles: [
-          {
-            id: 'default',
-            name: 'Default',
-            basedOn: 'Normal',
-            next: 'Normal',
-            run: {
-              font: 'Noto Sans Devanagari',
-              size: 24,
-            },
-          },
-          {
-            id: 'header',
-            name: 'Header',
-            basedOn: 'Normal',
-            run: {
-              font: 'Noto Sans Devanagari',
-              size: 28,
-              bold: true,
-            },
-          },
+          { id: 'default', name: 'Default', run: { font: 'Noto Sans Devanagari', size: 24 } },
+          { id: 'header', name: 'Header', run: { font: 'Noto Sans Devanagari', size: 20, bold: true } },
         ],
       },
     });
