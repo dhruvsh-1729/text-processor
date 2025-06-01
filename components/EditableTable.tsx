@@ -293,7 +293,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
     doc.save(`${tableName}.pdf`);
   };
 
-  
+
   const exportToDocx = async (includeSort: boolean) => {
     const columnWidths = [4, 4, 18, 50, 17, 17]; // DXA units, matching Box-2.doc
     const totalWidth = 13800; // Sum of columnWidths
@@ -369,8 +369,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
             }),
           ],
         });
-        })
-  );
+      })
+    );
 
     const table = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -402,7 +402,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
     });
   };
 
-  const sortedRows = getSortedRows(rows);
+  // const sortedRows = getSortedRows(rows);
+  const sortedRows = rows;
 
   return (
     <div ref={tableRef} className="text-sm">
@@ -660,16 +661,16 @@ const EditableTable: React.FC<EditableTableProps> = ({
             })}
           </tbody>
         </table>
-        <button
-          onClick={() => {
-            saveState();
-            addRow();
-          }}
-          className="mt-2 px-3 py-1 bg-zinc-500 cursor-pointer text-white rounded text-xs"
-        >
-          Add Row
-        </button>
       </div>
+      <button
+        onClick={() => {
+          saveState();
+          addRow();
+        }}
+        className="mt-2 px-3 py-1 bg-zinc-500 cursor-pointer text-white rounded text-xs"
+      >
+        Add Row
+      </button>
     </div>
   );
 };
