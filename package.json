@@ -12,6 +12,7 @@
     "@pdftron/webviewer": "^11.4.0",
     "docx": "^9.5.0",
     "file-saver": "^2.0.5",
+    "formidable": "^3.5.4",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "mammoth": "^1.9.0",
@@ -22,12 +23,14 @@
     "react-dom": "^19.0.0",
     "react-image-crop": "^11.0.10",
     "react-simple-wysiwyg": "^3.2.2",
+    "resend": "^4.5.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/file-saver": "^2.0.7",
+    "@types/formidable": "^3.4.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

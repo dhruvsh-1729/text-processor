@@ -4,6 +4,7 @@ import DocxParser from '../components/DocxParser';
 import { ParsedSection, TableRow } from '../components/types';
 import mammoth from 'mammoth';
 import { Crop } from 'react-image-crop';
+import BugModal from '@/components/BugModal';
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -30,6 +31,7 @@ const App: React.FC = () => {
   }]);
   const [activeSectionTab, setActiveSectionTab] = useState<number | null>(0);
   const [activeTableTab, setActiveTableTab] = useState<number | null>(0);
+  const [openBugModal, setOpenBugModal] = useState<boolean>(false);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -399,7 +401,7 @@ const App: React.FC = () => {
       <div
         className={`transition-all duration-300 ${hiddenRight ? 'w-96' : hiddenLeft ? 'w-full' : 'w-3/5'} flex flex-col min-h-0 overflow-hidden bg-white shadow-md rounded-lg`}
       >
-        <div className="flex items-center gap-2 p-2 border-b border-zinc-200 text-sm">
+        <div className="flex items-center justify-between gap-2 p-2 border-b border-zinc-200 text-sm">
           <div className="flex items-center gap-2">
             <select
               value={activeSectionTab ?? ''}
@@ -476,6 +478,16 @@ const App: React.FC = () => {
               title="Toggle View"
             >
               {hiddenRight ? '<' : '>'}
+            </button>
+          </div>
+          <div>
+            <button
+              className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-600 text-sm"
+              onClick={() => {
+                setOpenBugModal(true);
+              }}
+            >
+              Report bug
             </button>
           </div>
         </div>
@@ -581,6 +593,8 @@ const App: React.FC = () => {
           )}
         </div>
       </div>
+
+      <BugModal isOpen={openBugModal} onClose={() => setOpenBugModal(false)} />
     </div>
   );
 };
