@@ -257,7 +257,7 @@ const App: React.FC = () => {
           col4: `\n${row.col4?.trim()
             ? `${row.col4.trim().includes(remainingText)
               ? row.col4.trim()
-              : `${row.col4.trim()}${hasDifferentNumber ? '......................\n' : ''}${remainingText}`}`
+              : `${row.col4.trim()}${hasDifferentNumber ? '......................\n' : '\n'}${remainingText}`}`
             : remainingText}`,
           col6: `\n${row.col6
             ? Array.from(new Set([...existingNumbers, ...newNumbers]))

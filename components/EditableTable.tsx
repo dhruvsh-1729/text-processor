@@ -295,7 +295,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
 
 
   const exportToDocx = async (includeSort: boolean) => {
-    const columnWidths = [4, 4, 18, 50, 17, 17]; // DXA units, matching Box-2.doc
+    const columnWidths = [4, 5, 17, 50, 17, 17]; // DXA units, matching Box-2.doc
     const totalWidth = 13800; // Sum of columnWidths
     const headers = ['Sr.', 'V.T', 'Granth', 'ShastraPath', 'Pub. Rem', 'In. Rem'];
     const sortedRows = getSortedRows(rows, includeSort);
@@ -304,7 +304,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
       children: headers.map((header, idx) =>
         new TableCell({
           width: { size: columnWidths[idx], type: WidthType.DXA },
-          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          margins: { top: 0, bottom: 0, left: 100, right: 0 },
           children: [
             new Paragraph({
               children: [new TextRun({ text: header, bold: true, font: 'Noto Sans Devanagari' })],
@@ -336,36 +336,114 @@ const EditableTable: React.FC<EditableTableProps> = ({
           children: [
             new TableCell({
               width: { size: columnWidths[0], type: WidthType.DXA },
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
-              children: [new Paragraph({ children: [new TextRun({ text: String(index + 1), font: 'Noto Sans Devanagari' })] })],
+              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              children: [new Paragraph({ children: [new TextRun({ text: String(index + 1), font: 'Noto Sans Devanagari', style: 'default' })] })],
             }),
             new TableCell({
               width: { size: columnWidths[1], type: WidthType.DXA },
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
-              children: [new Paragraph({ children: [new TextRun({ text: row.col2 || '', font: 'Noto Sans Devanagari' })] })],
+              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              children: [
+                new Paragraph({
+                  children: [
+                    ...(row.col2 || '')
+                      .split(/\n+/) // Split by newlines
+                      .filter((segment) => segment && segment.trim().length > 0)
+                      .map((segment) =>
+                        new TextRun({
+                          text: segment.trim(),
+                          font: 'Noto Sans Devanagari',
+                          break: 1, // Add a line break after each segment
+                        })
+                      ),
+                  ],
+                  style: 'default',
+                }),
+              ],
             }),
             new TableCell({
               width: { size: columnWidths[2], type: WidthType.DXA },
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
-              children: [new Paragraph({ children: [new TextRun({ text: row.col3 || '', font: 'Noto Sans Devanagari' })] })],
+              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              children: [
+                new Paragraph({
+                  children: [
+                    ...(row.col3 || '')
+                      .split(/\n+/) // Split by newlines
+                      .filter((segment) => segment && segment.trim().length > 0)
+                      .map((segment) =>
+                        new TextRun({
+                          text: segment.trim(),
+                          font: 'Noto Sans Devanagari',
+                          break: 1, // Add a line break after each segment
+                        })
+                      ),
+                  ],
+                  style: 'default',
+                }),
+              ],
             }),
             new TableCell({
               width: { size: columnWidths[3], type: WidthType.DXA },
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
               children: [
-                new Paragraph({ children: [new TextRun({ text: row.col4 || '', font: 'Noto Sans Devanagari' })] }),
+                new Paragraph({
+                  children: [
+                    ...(row.col4 || '')
+                      .split(/\n+/) // Split by newlines
+                      .filter((segment) => segment && segment.trim().length > 0)
+                      .map((segment) =>
+                        new TextRun({
+                          text: segment.trim(),
+                          font: 'Noto Sans Devanagari',
+                          break: 1, // Add a line break after each segment
+                        })
+                      ),
+                  ],
+                  style: 'default',
+                }),
                 ...imageElements.map(img => new Paragraph({ children: [img] })),
               ],
             }),
             new TableCell({
               width: { size: columnWidths[4], type: WidthType.DXA },
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
-              children: [new Paragraph({ children: [new TextRun({ text: row.col5 || '', font: 'Noto Sans Devanagari' })] })],
+              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              children: [
+                new Paragraph({
+                  children: [
+                    ...(row.col5 || '')
+                      .split(/\n+/) // Split by newlines
+                      .filter((segment) => segment && segment.trim().length > 0)
+                      .map((segment) =>
+                        new TextRun({
+                          text: segment.trim(),
+                          font: 'Noto Sans Devanagari',
+                          break: 1, // Add a line break after each segment
+                        })
+                      ),
+                  ],
+                  style: 'default',
+                }),
+              ],
             }),
             new TableCell({
               width: { size: columnWidths[5], type: WidthType.DXA },
-              margins: { top: 0, bottom: 0, left: 0, right: 0 },
-              children: [new Paragraph({ children: [new TextRun({ text: row.col6 || '', font: 'Noto Sans Devanagari' })] })],
+              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              children: [
+                new Paragraph({
+                  children: [
+                    ...(row.col6 || '')
+                      .split(/\n+/) // Split by newlines
+                      .filter((segment) => segment && segment.trim().length > 0)
+                      .map((segment) =>
+                        new TextRun({
+                          text: segment.trim(),
+                          font: 'Noto Sans Devanagari',
+                          break: 1, // Add a line break after each segment
+                        })
+                      ),
+                  ],
+                  style: 'default',
+                }),
+              ],
             }),
           ],
         });
@@ -391,8 +469,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
       }],
       styles: {
         paragraphStyles: [
-          { id: 'default', name: 'Default', run: { font: 'Noto Sans Devanagari', size: 24 } },
-          { id: 'header', name: 'Header', run: { font: 'Noto Sans Devanagari', size: 20, bold: true } },
+          { id: 'default', name: 'Default', run: { font: 'Noto Sans Devanagari', size: 28 } },
+          { id: 'header', name: 'Header', run: { font: 'Noto Sans Devanagari', size: 28, bold: true } },
         ],
       },
     });
@@ -412,7 +490,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
         <button
           onClick={() => {
             const includeSort = window.confirm(
-              "Do you want sorted order with Vishay name in the first line of Shaastrapath? This could change the order based on Granth name."
+              "Do you want sorted order with Vishay name in the first line of Shaastrapath? This could change the order based on Granth name. Click 'OK' for Yes or 'Cancel' for No."
             );
             exportToDocx(includeSort);
           }}
