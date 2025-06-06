@@ -6,7 +6,6 @@ import ReactCrop, { Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import Editor from 'react-simple-wysiwyg';
 
 // @ts-expect-error - Skip type checking for font file
 import { font } from './data/NotoSans-VariableFont_wdth,wght-normal';
@@ -105,8 +104,7 @@ const getSortedRows = (rows: TableRow[], includeThirdSortOrder: boolean = false)
       if (aCol3 !== bCol3) {
         return aCol3.localeCompare(bCol3);
       }
-    }
-    else if (includeThirdSortOrder) {
+    } else if (includeThirdSortOrder) {
       const aFirstLine = getFirstLine(a.col4 || '');
       const bFirstLine = getFirstLine(b.col4 || '');
       if (aFirstLine === '' && bFirstLine !== '') return 1;
@@ -114,7 +112,7 @@ const getSortedRows = (rows: TableRow[], includeThirdSortOrder: boolean = false)
       if (aFirstLine === '' && bFirstLine === '') return 0;
       return aFirstLine.localeCompare(bFirstLine);
     }
-    return 0; // Ensure a valid number is always returned
+    return 0;
   });
 };
 
@@ -129,7 +127,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
   tableName,
 }) => {
   const inputRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
-  const [currentImage, setCurrentImage] = useState<{ rowIndex: number; imageIndex: number; src: string } | null>(null);
+  const [currentImage, setCurrentImage] = useState<{ rowId: number; imageIndex: number; src: string } | null>(null);
   const [crop, setCrop] = useState<Crop>({ unit: '%', width: 50, height: 50, x: 25, y: 25 });
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -147,10 +145,6 @@ const EditableTable: React.FC<EditableTableProps> = ({
   }, [rows]);
 
   useEffect(() => {
-    inputRefs.current[selectedRowIndex as number || 0]?.focus();
-  }, [selectedRowIndex]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'z') {
         event.preventDefault();
@@ -159,7 +153,6 @@ const EditableTable: React.FC<EditableTableProps> = ({
             const nextState = redoStack[redoStack.length - 1];
             setUndoStack((prev) => [...prev, { rows, images }]);
             setRows(nextState.rows);
-            setImages(nextState.images);
             setRedoStack((prevStack) => prevStack.slice(0, -1));
           }
         } else {
@@ -167,7 +160,6 @@ const EditableTable: React.FC<EditableTableProps> = ({
             const previousState = undoStack[undoStack.length - 1];
             setRedoStack((prev) => [...prev, { rows, images }]);
             setRows(previousState.rows);
-            setImages(previousState.images);
             setUndoStack((prevStack) => prevStack.slice(0, -1));
           }
         }
@@ -186,22 +178,27 @@ const EditableTable: React.FC<EditableTableProps> = ({
     };
   }, [undoStack, redoStack, rows, images, setRows, setImages]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, rowIndex: number) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>, rowId: number) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
         const src = reader.result as string;
         saveState();
-        setImages((prev) => ({
-          ...prev,
-          [rowIndex]: [...(prev[rowIndex] || []), {
+        setImages((prev) => {
+          const updatedRowImages = prev[rowId] ? [...prev[rowId]] : [];
+          // Ensure only one image is added per upload by replacing push with direct assignment if needed
+          updatedRowImages.push({
             originalSrc: src,
             croppedSrc: src,
-            crop: { unit: '%', width: 100, height: 100, x: 0, y: 0 }
-          }],
-        }));
-        event.target.value = '';
+            crop: { unit: '%', width: 100, height: 100, x: 0, y: 0 },
+          });
+          return {
+            ...prev,
+            [rowId]: updatedRowImages,
+          };
+        });
+        event.target.value = ''; // Reset input to allow re-upload of the same file
       };
       reader.readAsDataURL(file);
     }
@@ -246,11 +243,11 @@ const EditableTable: React.FC<EditableTableProps> = ({
     });
   };
 
-  const handleCropComplete = (rowIndex: number, imageIndex: number, croppedImage: string) => {
+  const handleCropComplete = (rowId: number, imageIndex: number, croppedImage: string) => {
     saveState();
     setImages((prev) => {
       const newImages = { ...prev };
-      newImages[rowIndex][imageIndex].croppedSrc = croppedImage;
+      newImages[rowId][imageIndex].croppedSrc = croppedImage;
       return newImages;
     });
     setCurrentImage(null);
@@ -293,10 +290,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
     doc.save(`${tableName}.pdf`);
   };
 
-
   const exportToDocx = async (includeSort: boolean) => {
-    const columnWidths = [4, 5, 17, 50, 17, 17]; // DXA units, matching Box-2.doc
-    const totalWidth = 13800; // Sum of columnWidths
+    const columnWidths = [4, 5, 17, 50, 17, 17]; // DXA units
     const headers = ['Sr.', 'V.T', 'Granth', 'ShastraPath', 'Pub. Rem', 'In. Rem'];
     const sortedRows = getSortedRows(rows, includeSort);
 
@@ -317,8 +312,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
 
     const dataRows = await Promise.all(
       sortedRows.map(async (row, index) => {
-        const originalIndex = rows.findIndex(r => r.id === row.id);
-        const imagesForRow = images[originalIndex] || [];
+        const imagesForRow = images[row.id] || [];
         const imageElements = await Promise.all(
           imagesForRow.map(async (img) => {
             const response = await fetch(img.croppedSrc);
@@ -326,7 +320,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
             const arrayBuffer = await blob.arrayBuffer();
             return new ImageRun({
               data: arrayBuffer,
-              transformation: { width: 100, height: 100 }, // Fits within 6000 DXA
+              transformation: { width: 100, height: 100 },
               type: "png"
             });
           })
@@ -336,23 +330,23 @@ const EditableTable: React.FC<EditableTableProps> = ({
           children: [
             new TableCell({
               width: { size: columnWidths[0], type: WidthType.DXA },
-              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              margins: { top: 0, bottom: 100, left: 100, right: 100 },
               children: [new Paragraph({ children: [new TextRun({ text: String(index + 1), font: 'Noto Sans Devanagari', style: 'default' })] })],
             }),
             new TableCell({
               width: { size: columnWidths[1], type: WidthType.DXA },
-              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              margins: { top: 0, bottom: 100, left: 100, right: 100 },
               children: [
                 new Paragraph({
                   children: [
                     ...(row.col2 || '')
-                      .split(/\n+/) // Split by newlines
+                      .split(/\n+/)
                       .filter((segment) => segment && segment.trim().length > 0)
                       .map((segment) =>
                         new TextRun({
                           text: segment.trim(),
                           font: 'Noto Sans Devanagari',
-                          break: 1, // Add a line break after each segment
+                          break: 1,
                         })
                       ),
                   ],
@@ -362,18 +356,18 @@ const EditableTable: React.FC<EditableTableProps> = ({
             }),
             new TableCell({
               width: { size: columnWidths[2], type: WidthType.DXA },
-              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              margins: { top: 0, bottom: 100, left: 100, right: 100 },
               children: [
                 new Paragraph({
                   children: [
                     ...(row.col3 || '')
-                      .split(/\n+/) // Split by newlines
+                      .split(/\n+/)
                       .filter((segment) => segment && segment.trim().length > 0)
                       .map((segment) =>
                         new TextRun({
                           text: segment.trim(),
                           font: 'Noto Sans Devanagari',
-                          break: 1, // Add a line break after each segment
+                          break: 1,
                         })
                       ),
                   ],
@@ -383,18 +377,18 @@ const EditableTable: React.FC<EditableTableProps> = ({
             }),
             new TableCell({
               width: { size: columnWidths[3], type: WidthType.DXA },
-              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              margins: { top: 0, bottom: 100, left: 100, right: 100 },
               children: [
                 new Paragraph({
                   children: [
                     ...(row.col4 || '')
-                      .split(/\n+/) // Split by newlines
+                      .split(/\n+/)
                       .filter((segment) => segment && segment.trim().length > 0)
                       .map((segment) =>
                         new TextRun({
                           text: segment.trim(),
                           font: 'Noto Sans Devanagari',
-                          break: 1, // Add a line break after each segment
+                          break: 1,
                         })
                       ),
                   ],
@@ -405,18 +399,18 @@ const EditableTable: React.FC<EditableTableProps> = ({
             }),
             new TableCell({
               width: { size: columnWidths[4], type: WidthType.DXA },
-              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              margins: { top: 0, bottom: 100, left: 100, right: 100 },
               children: [
                 new Paragraph({
                   children: [
                     ...(row.col5 || '')
-                      .split(/\n+/) // Split by newlines
+                      .split(/\n+/)
                       .filter((segment) => segment && segment.trim().length > 0)
                       .map((segment) =>
                         new TextRun({
                           text: segment.trim(),
                           font: 'Noto Sans Devanagari',
-                          break: 1, // Add a line break after each segment
+                          break: 1,
                         })
                       ),
                   ],
@@ -426,18 +420,18 @@ const EditableTable: React.FC<EditableTableProps> = ({
             }),
             new TableCell({
               width: { size: columnWidths[5], type: WidthType.DXA },
-              margins: { top: 0, bottom: 100, left: 100, right: 100 }, // Adjusted left margin
+              margins: { top: 0, bottom: 100, left: 100, right: 100 },
               children: [
                 new Paragraph({
                   children: [
                     ...(row.col6 || '')
-                      .split(/\n+/) // Split by newlines
+                      .split(/\n+/)
                       .filter((segment) => segment && segment.trim().length > 0)
                       .map((segment) =>
                         new TextRun({
                           text: segment.trim(),
                           font: 'Noto Sans Devanagari',
-                          break: 1, // Add a line break after each segment
+                          break: 1,
                         })
                       ),
                   ],
@@ -462,7 +456,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
         properties: {
           page: {
             margin: { top: 720, right: 360, bottom: 720, left: 360 },
-            size: { orientation: 'landscape' }, // A4 landscape in DXA
+            size: { orientation: 'landscape' },
           },
         },
         children: [table],
@@ -480,7 +474,6 @@ const EditableTable: React.FC<EditableTableProps> = ({
     });
   };
 
-  // const sortedRows = getSortedRows(rows);
   const sortedRows = rows;
 
   return (
@@ -513,230 +506,232 @@ const EditableTable: React.FC<EditableTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {sortedRows.map((row, index) => {
-              const originalIndex = rows.findIndex(r => r.id === row.id);
-              return (
-                <tr key={row.id} className="">
-                  <td className="border flex flex-col gap-1 border-gray-300 px-1 py-1">
-                    {index + 1}
-                    <button
-                      onClick={() => {
-                        saveState();
-                        setRows((prevRows) => prevRows.filter((r) => r.id !== row.id));
-                      }}
-                      className="text-red-500 hover:text-red-700 text-xs"
-                    >
-                      🗑️
-                    </button>
-                  </td>
-                  <td className="border border-gray-300 px-1 py-1 w-1/15">
-                    <select
-                      value={row.col2 || 'स्व'}
-                      onChange={(e) => {
-                        saveState();
-                        setRows((prevRows) =>
-                          prevRows.map((r) => (r.id === row.id ? { ...r, col2: e.target.value } : r))
-                        );
-                      }}
-                      className="w-full border border-gray-300 px-1 py-1 text-xs"
-                    >
-                      <option value="">Select</option>
-                      <option value="व्यु">व्यु</option>
-                      <option value="व्या">व्या</option>
-                      <option value="साल">सा.ल</option>
-                      <option value="ल">ल.</option>
-                      <option value="लचि">ल.चि.</option>
-                      <option value="पर्या">पर्या</option>
-                      <option value="विक.">विक.</option>
-                      <option value="स्व">स्व.</option>
-                      <option value="परि">परि.</option>
-                    </select>
-                  </td>
-                  <td className="border border-gray-300 px-1 py-1">
+            {sortedRows.map((row, index) => (
+              <tr key={row.id} className="">
+                <td className="border flex flex-col gap-1 border-gray-300 px-1 py-1">
+                  {index + 1}
+                  <button
+                    onClick={() => {
+                      saveState();
+                      setRows((prevRows) => prevRows.filter((r) => r.id !== row.id));
+                      setImages((prevImages) => {
+                        const newImages = { ...prevImages };
+                        delete newImages[row.id];
+                        return newImages;
+                      });
+                    }}
+                    className="text-red-500 hover:text-red-700 text-xs"
+                  >
+                    🗑️
+                  </button>
+                </td>
+                <td className="border border-gray-300 px-1 py-1 w-1/15">
+                  <select
+                    value={row.col2 || 'स्व'}
+                    onChange={(e) => {
+                      saveState();
+                      setRows((prevRows) =>
+                        prevRows.map((r) => (r.id === row.id ? { ...r, col2: e.target.value } : r))
+                      );
+                    }}
+                    className="w-full border border-gray-300 px-1 py-1 text-xs"
+                  >
+                    <option value="">Select</option>
+                    <option value="व्यु">व्यु</option>
+                    <option value="व्या">व्या</option>
+                    <option value="साल">सा.ल</option>
+                    <option value="ल">ल.</option>
+                    <option value="लचि">ल.चि.</option>
+                    <option value="पर्या">पर्या</option>
+                    <option value="विक.">विक.</option>
+                    <option value="स्व">स्व.</option>
+                    <option value="परि">परि.</option>
+                  </select>
+                </td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <textarea
+                    value={row.col3}
+                    onClick={() => setSelectedRowIndex(index)}
+                    onChange={(e) => {
+                      saveState();
+                      setRows((prevRows) =>
+                        prevRows.map((r) => (r.id === row.id ? { ...r, col3: e.target.value } : r))
+                      );
+                    }}
+                    className="w-full border px-1 border-gray-300 py-1 resize-none text-xs"
+                    style={{ height: 'auto', minHeight: '10em' }}
+                    rows={1}
+                  />
+                </td>
+                <td className="border border-gray-300 px-1 py-1" style={{ width: '55%' }}>
+                  <div className="flex flex-col">
                     <textarea
-                      value={row.col3}
-                      onClick={() => setSelectedRowIndex(originalIndex)}
+                      value={row.col4}
+                      onClick={() => setSelectedRowIndex(index)}
                       onChange={(e) => {
                         saveState();
                         setRows((prevRows) =>
-                          prevRows.map((r) => (r.id === row.id ? { ...r, col3: e.target.value } : r))
+                          prevRows.map((r) => (r.id === row.id ? { ...r, col4: e.target.value } : r))
                         );
                       }}
-                      className="w-full border px-1 border-gray-300 py-1 resize-none text-xs"
-                      style={{ height: 'auto', minHeight: '10em' }}
-                      rows={1}
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-1 py-1" style={{ width: '55%' }}>
-                    <div className="flex flex-col">
-                      <textarea
-                        value={row.col4}
-                        onClick={() => setSelectedRowIndex(originalIndex)}
-                        onChange={(e) => {
-                          saveState();
-                          setRows((prevRows) =>
-                            prevRows.map((r) => (r.id === row.id ? { ...r, col4: e.target.value } : r))
-                          );
-                        }}
-                        ref={(el) => {
-                          inputRefs.current[originalIndex] = el;
-                        }}
-                        className="w-full border border-gray-300 px-1 py-1 resize-none text-xs"
-                        style={{ height: 'auto', minHeight: '10em' }}
-                        rows={1}
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, originalIndex)}
-                        className="mt-1 text-xs"
-                        key={`upload-${row.id}-${Date.now()}`}
-                      />
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {(images[originalIndex] || []).map((img, imgIndex) => (
-                          <div key={imgIndex} className="relative w-20 h-20">
-                            <img
-                              src={img.croppedSrc}
-                              alt={`Image ${imgIndex + 1}`}
-                              className="w-full h-full object-cover cursor-pointer"
-                              onClick={() => setCurrentImage({ rowIndex: originalIndex, imageIndex: imgIndex, src: img.originalSrc })}
-                            />
-                            <button
-                              onClick={() => {
-                                saveState();
-                                setImages((prev) => {
-                                  const updatedImages = { ...prev };
-                                  updatedImages[originalIndex] = updatedImages[originalIndex].filter((_, i) => i !== imgIndex);
-                                  return updatedImages;
-                                });
-                              }}
-                              className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                            >
-                              ✖
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      {currentImage && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                          <div
-                            className="bg-white p-4 rounded shadow-lg relative"
-                            style={{
-                              width: '90vw',
-                              height: '90vh',
-                              maxWidth: '800px',
-                              maxHeight: '800px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <button
-                              onClick={() => setCurrentImage(null)}
-                              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xs"
-                            >
-                              ✖
-                            </button>
-                            <ReactCrop
-                              crop={crop}
-                              onChange={handleCropChange}
-                              style={{ maxWidth: '100%', maxHeight: '80vh' }}
-                            >
-                              <img
-                                src={currentImage.src}
-                                style={{
-                                  maxWidth: '100%',
-                                  maxHeight: '80vh',
-                                  objectFit: 'contain',
-                                }}
-                              />
-                            </ReactCrop>
-                            <button
-                              onClick={() => {
-                                const image = new Image();
-                                image.src = currentImage.src;
-                                image.onload = () =>
-                                  getCroppedImage(image, crop).then((croppedImage) =>
-                                    handleCropComplete(currentImage.rowIndex, currentImage.imageIndex, croppedImage)
-                                  );
-                              }}
-                              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
-                            >
-                              Crop
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="border border-gray-300 px-1 py-1 w-1/10">
-                    <div className="flex flex-col w-full">
-                      <select
-                        value={row.col5.split('=')[0] || ''}
-                        onChange={(e) => {
-                          const selectedValue = e.target.value;
-                          saveState();
-                          setRows((prevRows) =>
-                            prevRows.map((r) =>
-                              r.id === row.id
-                                ? {
-                                  ...r,
-                                  col5: selectedValue + (['RA', 'RC', 'RS'].includes(selectedValue) ? '=' : ''),
-                                }
-                                : r
-                            )
-                          );
-                        }}
-                        className="w-full border border-gray-300 px-1 py-1 mb-1 text-xs"
-                      >
-                        <option value="">Select</option>
-                        <option value="MTN">MTN</option>
-                        <option value="MMT">MMT</option>
-                        <option value="Samegranth">Samegranth</option>
-                        <option value="SinglePath">SinglePath</option>
-                        <option value="RA">RA</option>
-                        <option value="RC">RC</option>
-                        <option value="RS">RS</option>
-                      </select>
-                      {(row.col5.startsWith('RA=') || row.col5.startsWith('RC=') || row.col5.startsWith('RS=')) && (
-                        <textarea
-                          value={row.col5.split('=')[1] || ''}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            saveState();
-                            setRows((prevRows) =>
-                              prevRows.map((r) =>
-                                r.id === row.id ? { ...r, col5: row.col5.split('=')[0] + '=' + newValue } : r
-                              )
-                            );
-                          }}
-                          className="border w-full border-gray-300 px-1 py-1 resize-none text-xs"
-                          style={{ height: '8em' }}
-                          rows={1}
-                        />
-                      )}
-                    </div>
-                  </td>
-                  <td className="border border-gray-300 px-1 py-1 w-1/10">
-                    <textarea
-                      value={row.col6 || ''}
-                      onClick={() => setSelectedRowIndex(originalIndex)}
-                      onChange={(e) => {
-                        saveState();
-                        setRows((prevRows) =>
-                          prevRows.map((r) => (r.id === row.id ? { ...r, col6: e.target.value } : r))
-                        );
+                      ref={(el) => {
+                        inputRefs.current[index] = el;
                       }}
                       className="w-full border border-gray-300 px-1 py-1 resize-none text-xs"
                       style={{ height: 'auto', minHeight: '10em' }}
                       rows={1}
                     />
-                  </td>
-                </tr>
-              );
-            })}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, row.id)}
+                      className="mt-1 text-xs"
+                      key={`upload-${row.id}`}
+                    />
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {(images[row.id] || []).map((img, imgIndex) => (
+                        <div key={imgIndex} className="relative w-20 h-20">
+                          <img
+                            src={img.croppedSrc}
+                            alt={`Image ${imgIndex + 1}`}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setCurrentImage({ rowId: row.id, imageIndex: imgIndex, src: img.originalSrc })}
+                          />
+                          <button
+                            onClick={() => {
+                              saveState();
+                              setImages((prev) => {
+                                const updatedImages = { ...prev };
+                                updatedImages[row.id] = updatedImages[row.id].filter((_, i) => i !== imgIndex);
+                                return updatedImages;
+                              });
+                            }}
+                            className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                          >
+                            ✖
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {currentImage && currentImage.rowId === row.id && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div
+                          className="bg-white p-4 rounded shadow-lg relative"
+                          style={{
+                            width: '90vw',
+                            height: '90vh',
+                            maxWidth: '800px',
+                            maxHeight: '800px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <button
+                            onClick={() => setCurrentImage(null)}
+                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xs"
+                          >
+                            ✖
+                          </button>
+                          <ReactCrop
+                            crop={crop}
+                            onChange={handleCropChange}
+                            style={{ maxWidth: '100%', maxHeight: '80vh' }}
+                          >
+                            <img
+                              src={currentImage.src}
+                              style={{
+                                maxWidth: '100%',
+                                maxHeight: '80vh',
+                                objectFit: 'contain',
+                              }}
+                            />
+                          </ReactCrop>
+                          <button
+                            onClick={() => {
+                              const image = new Image();
+                              image.src = currentImage.src;
+                              image.onload = () =>
+                                getCroppedImage(image, crop).then((croppedImage) =>
+                                  handleCropComplete(currentImage.rowId, currentImage.imageIndex, croppedImage)
+                                );
+                            }}
+                            className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
+                          >
+                            Crop
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="border border-gray-300 px-1 py-1 w-1/10">
+                  <div className="flex flex-col w-full">
+                    <select
+                      value={row.col5.split('=')[0] || ''}
+                      onChange={(e) => {
+                        const selectedValue = e.target.value;
+                        saveState();
+                        setRows((prevRows) =>
+                          prevRows.map((r) =>
+                            r.id === row.id
+                              ? {
+                                ...r,
+                                col5: selectedValue + (['RA', 'RC', 'RS'].includes(selectedValue) ? '=' : ''),
+                              }
+                              : r
+                          )
+                        );
+                      }}
+                      className="w-full border border-gray-300 px-1 py-1 mb-1 text-xs"
+                    >
+                      <option value="">Select</option>
+                      <option value="MTN">MTN</option>
+                      <option value="MMT">MMT</option>
+                      <option value="Samegranth">Samegranth</option>
+                      <option value="SinglePath">SinglePath</option>
+                      <option value="RA">RA</option>
+                      <option value="RC">RC</option>
+                      <option value="RS">RS</option>
+                    </select>
+                    {(row.col5.startsWith('RA=') || row.col5.startsWith('RC=') || row.col5.startsWith('RS=')) && (
+                      <textarea
+                        value={row.col5.split('=')[1] || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          saveState();
+                          setRows((prevRows) =>
+                            prevRows.map((r) =>
+                              r.id === row.id ? { ...r, col5: row.col5.split('=')[0] + '=' + newValue } : r
+                            )
+                          );
+                        }}
+                        className="border w-full border-gray-300 px-1 py-1 resize-none text-xs"
+                        style={{ height: '8em' }}
+                        rows={1}
+                      />
+                    )}
+                  </div>
+                </td>
+                <td className="border border-gray-300 px-1 py-1 w-1/10">
+                  <textarea
+                    value={row.col6 || ''}
+                    onClick={() => setSelectedRowIndex(index)}
+                    onChange={(e) => {
+                      saveState();
+                      setRows((prevRows) =>
+                        prevRows.map((r) => (r.id === row.id ? { ...r, col6: e.target.value } : r))
+                      );
+                    }}
+                    className="w-full border border-gray-300 px-1 py-1 resize-none text-xs"
+                    style={{ height: 'auto', minHeight: '10em' }}
+                    rows={1}
+                  />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
