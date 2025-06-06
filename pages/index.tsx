@@ -123,12 +123,12 @@ const App: React.FC = () => {
     const arrayBuffer = await file.arrayBuffer();
     const { value } = await mammoth.convertToHtml({ arrayBuffer });
 
-    let fileType = file.name.includes("APC") ? "APC" : "SP";
+    let fileType = file.name.includes("SP") ? "SP" : "APC";
     let sectionSplitter;
-    if (fileType === "APC") {
-      sectionSplitter = /(?=<p>ग्रंथ :-)/;
-    } else {
+    if (fileType === "SP") {
       sectionSplitter = /(?<=क्रम :-)/;
+    } else {
+      sectionSplitter = /(?=<p>ग्रंथ :-)/;
     }
 
     const rawSections = value.split(sectionSplitter);
@@ -144,18 +144,7 @@ const App: React.FC = () => {
         textLines: string[] = [];
 
       for (const line of lines) {
-        if (fileType === "APC") {
-          if (line.startsWith('ग्रंथ :-')) {
-            granth = line.replace('ग्रंथ :-', '').trim();
-            granth = granth.split('(प्रकाशक')[0].trim();
-          } else if (line.startsWith('Adhyay :-')) {
-            adhyay = line.replace('Adhyay :-', '').trim();
-          } else if (line.startsWith('Pointers :-')) {
-            pointers = line.replace('Pointers :-', '').trim();
-          } else {
-            textLines.push(line);
-          }
-        } else {
+        if (fileType === "SP") {
           if (line.startsWith('क्रम :-')) {
             pointers = line.replace('क्रम :-', '').trim();
           } else if (line.startsWith('ग्रंथ :-')) {
@@ -171,6 +160,17 @@ const App: React.FC = () => {
             if (!adhyay) {
               adhyay = line.replace('स्थान :-', '').trim();
             }
+          } else {
+            textLines.push(line);
+          }
+        } else {
+          if (line.startsWith('ग्रंथ :-')) {
+            granth = line.replace('ग्रंथ :-', '').trim();
+            granth = granth.split('(प्रकाशक')[0].trim();
+          } else if (line.startsWith('Adhyay :-')) {
+            adhyay = line.replace('Adhyay :-', '').trim();
+          } else if (line.startsWith('Pointers :-')) {
+            pointers = line.replace('Pointers :-', '').trim();
           } else {
             textLines.push(line);
           }
