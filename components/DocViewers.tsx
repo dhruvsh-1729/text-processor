@@ -1,5 +1,5 @@
 // components/DocxViewer.tsx
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import WebViewer from '@pdftron/webviewer';
 
 const DocxViewer = ({ fileUrl }: { fileUrl: string }) => {
