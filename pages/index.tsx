@@ -265,7 +265,7 @@ const App: React.FC = () => {
             ? Array.from(new Set([...existingNumbers, ...newNumbers]))
               .filter((text) => text.trim() !== '')
               .join('\n')
-            : clippedText}${hasDifferentNumber ? `\n${granth}` : ''}`,
+            : clippedText}`,
         };
 
         activeTable.rows = activeTable.rows.map((r, idx) => (idx === selectedRowIndex ? updatedRow : r));
