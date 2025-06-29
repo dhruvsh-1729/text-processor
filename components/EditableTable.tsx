@@ -524,6 +524,23 @@ const EditableTable: React.FC<EditableTableProps> = ({
                   >
                     🗑️
                   </button>
+                  <button
+                    onClick={() => {
+                      saveState();
+                      const duplicatedRow = { ...row, id: rows.length + 1 };
+                      setRows((prevRows) => [...prevRows, duplicatedRow]);
+                      setImages((prevImages) => {
+                        const newImages = { ...prevImages };
+                        if (prevImages[row.id]) {
+                          newImages[duplicatedRow.id] = [...prevImages[row.id]];
+                        }
+                        return newImages;
+                      });
+                    }}
+                    className="text-blue-500 hover:text-blue-700 text-xs"
+                  >
+                    📄
+                  </button>
                 </td>
                 <td className="border border-gray-300 px-1 py-1 w-1/15">
                   <select
